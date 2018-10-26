@@ -637,7 +637,6 @@ end
 
 -- here goes the uncloak function
 function meta:uncloak()
-	-- (comment out if you want clientside ragdolls and dont want errors)
 	if self:Alive() then
 		local corpse_time = GetConVar( "sv_dead_ringer_corpse_time" ):GetInt()
 		if corpse_time > 50 then
