@@ -1,0 +1,85 @@
+[CONFIG] Logging Initiallized.
+Retreving list of Addons.
+ID: 1549028371	Name: "Dead Ringer (Test)"
+ID: 1241893101	Name: "HL2 Beta: Physcannon Launch Sound"
+Retrieval Finished!
+Executing queue.
+Creating temporary addon.json.
+Converting filenames to lowercase...
+Done!
+Creating GMA from C:\Users\Loke\Desktop\GMOD Infi Dead Ringer\Upload\gmod publish tool test\Dead Ringer
+Garry's Mod Addon Creator 1.1
+Looking in folder "C:/Users/Loke/Desktop/GMOD Infi Dead Ringer/Upload/gmod publish tool test/Dead Ringer/"
+	lua/effects/uncloak/init.lua
+	lua/entities/deadringer/shared.lua
+	lua/weapons/weapon_dead_ringer/shared.lua
+	materials/vgui/entities/weapon_dead_ringer.vmt
+	materials/vgui/entities/weapon_dead_ringer.vtf
+Successfully saved to "C:\Users\Loke\Desktop\GMOD Infi Dead Ringer\Upload\gmod publish tool test\test.gma" [56.9 KB]
+Deleting temporary addon.json...
+Temporary addon.json deleted.
+Creation of GMA OK!
+Finished running queue.
+Image for icon selected. Loading and Checking Image...
+Image is 512x512.  Loading preview...
+Preview Loaded.
+Image for icon selected. Loading and Checking Image...
+Image is 512x512.  Loading preview...
+Preview Loaded.
+Executing queue.
+Creating addon from C:\Users\Loke\Desktop\GMOD Infi Dead Ringer\Upload\gmod publish tool test\dead ringer.gma...
+Garry's Workshop Publisher 1.1
+[Compiled Oct  3 2018 - 16:43:32]
+Storage Quota: 1.0 GB total, 1023.9 MB free
+Opening C:\Users\Loke\Desktop\GMOD Infi Dead Ringer\Upload\gmod publish tool test\dead ringer.gma
+Compressing.. [56.9 KB] =>  [30.3 KB]
+Sending Addon to Steam..
+Sending Icon to Steam..
+Publishing "Dead Ringer Test 2"..
+(this can take a long time - it's actually uploading the files right now..)
+
+Published file!
+
+ UID: 1549037275
+
+Your file is marked as private - only you will be able to see it.
+Please mark it as public only when you have tested it!!
+
+Cleaning up..
+All done!
+Creation OK!
+Finished running queue.
+Refreshing addon list.
+Retreving list of Addons.
+ID: 1549028371	Name: "Dead Ringer (Test)"
+ID: 1549037275	Name: "Dead Ringer Test 2"
+ID: 1241893101	Name: "HL2 Beta: Physcannon Launch Sound"
+Retrieval Finished!
+Finished refreshing addon list.
+Executing queue.
+Creating temporary addon.json.
+Converting filenames to lowercase...
+Done!
+Creating GMA from C:\Users\Loke\Desktop\GMOD Infi Dead Ringer\Upload\gmod publish tool test\dead ringer
+Garry's Mod Addon Creator 1.1
+Looking in folder "C:/Users/Loke/Desktop/GMOD Infi Dead Ringer/Upload/gmod publish tool test/dead ringer/"
+	lua/effects/uncloak/init.lua
+	lua/entities/deadringer/shared.lua
+	lua/weapons/weapon_dead_ringer/shared.lua
+	materials/vgui/entities/weapon_dead_ringer.vmt
+	materials/vgui/entities/weapon_dead_ringer.vtf
+Successfully saved to "C:\Users\Loke\Desktop\GMOD Infi Dead Ringer\Upload\gmod publish tool test\dead ringer.gma" [56.9 KB]
+Deleting temporary addon.json...
+Temporary addon.json deleted.
+Creation of GMA OK!
+Finished running queue.
+Executing queue.
+Garry's Workshop Publisher 1.1
+[Compiled Oct  3 2018 - 16:43:32]
+Updating...
+Compressing.. [56.9 KB] =>  [30.3 KB]
+Updating Addon..
+Committing.. (this can take a long time)
+Success!
+Update OK!
+Finished running queue.
