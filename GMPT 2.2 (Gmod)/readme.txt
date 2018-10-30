@@ -1,0 +1,35 @@
+Bug Fixes/Change Log:
+-2.2:
+--Added retry delay.
+--Tweaked smart queue to use less cpu resources.
+--Fixed single task not updating status in queue.
+--Adjusted console output when starting from command line.
+--Fixed tasks not updating status correctly in queue when queue is stopped.
+-2.1:
+--Fixed creating addon via gma file.
+--Fixed open web page pointing to addon after successful creation.
+--Fixed action not stopping after stopping queue.
+--Current problems:
+---doesn't like to update status of action in queue if there is only one action in queue.
+---may skip an action (rarely or not at all) or not update the status of an action (confirmed).
+--Fixed log output where it would only show null for the message.
+--Small fixes.
+-2.0:
+--Added smart queue:
+---Can run multiple actions at the same time.
+---Can delay actions that upload to steam.
+---Can retry actions that upload to steam.
+---Current problem: may skip an action or not update the queue to indicate action is running.
+--Added function to change filenames to lowercase.
+--Added the ability to remove specific actions from the queue.
+--Added Settings Dialog.
+--Added ability to stop the queue.
+--Added ability to change the look and feel of the program, using java's look and feel system. [requires restart]
+--Added ability to open web page pointing to addon after successful creation. (does not work correctly)
+--Added data checking.
+--Added ability to auto remove completed actions.
+-1.2:
+--Added "Server Content" type to addon.json section.
+-1.1:
+--Fixed Upload error.
+--Fixed display of addon being created from in queue.
