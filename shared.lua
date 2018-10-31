@@ -74,18 +74,30 @@ if ( CLIENT ) then
 	antialias = true,
 	underline = false,
 } )
+	CreateClientConVar( "cl_dead_ringer_blue_hud", 0, true, false, 
+		"Should the charge meter be blue?" )
+
 
 function drawdr()
 --here goes the new HUD
 if LocalPlayer():GetNWBool("Status") == 1 or LocalPlayer():GetNWBool("Status") == 3 or LocalPlayer():GetNWBool("Status") == 4 and LocalPlayer():Alive() then
 local background = surface.GetTextureID("HUD/misc_ammo_area_red")
+local background2 = surface.GetTextureID("HUD/misc_ammo_area_blue")
 local w,h = surface.GetTextureSize(surface.GetTextureID("HUD/misc_ammo_area_red"))
+	if GetConVar( "cl_dead_ringer_blue_hud" ):GetInt() == 0 then
 	surface.SetTexture(background)
+	else
+	surface.SetTexture(background2)
+	end
 	surface.SetDrawColor(255,255,255,255)
 	surface.DrawTexturedRect(13, ScrH() - h - 200, w*5, h*5 )
 
 local energy = math.max(LocalPlayer():GetNWInt("drcharge"), 0)
-draw.RoundedBox(2,44, ScrH() - h - 168, (energy / 8) * 77, 15, Color(255,222,255,255))
+if GetConVar( "cl_dead_ringer_blue_hud" ):GetInt() == 0 then
+	draw.RoundedBox(2,44, ScrH() - h - 168, (energy / 8) * 77, 15, Color(255,222,255,255))
+else
+	draw.RoundedBox(2,44, ScrH() - h - 168, (energy / 8) * 77, 15, Color(255,255,222,255))
+end
 surface.SetDrawColor(255,255,255,255)
 surface.DrawOutlinedRect(44, ScrH() - h - 168, 77, 15)
 draw.DrawText("FEIGN", "DRfont",68, ScrH() - h - 150, Color(255,255,255,255))
@@ -128,7 +140,7 @@ SWEP.Secondary.ClipSize			= -1
 SWEP.Secondary.DefaultClip		= -1
 SWEP.Secondary.Ammo			= "none" 
 ------------------------------------------
-NPCs = { -- if you have custom NPC-enemies, you can add them here
+--[[NPCs = { -- if you have custom NPC-enemies, you can add them here
 "npc_zombie",
 "npc_fastzombie",
 "npc_zombie_torso",
@@ -169,7 +181,7 @@ NPCs = { -- if you have custom NPC-enemies, you can add them here
 "monster_tentacle",
 "monster_zombie",
 "monster_sentry",
-}
+}--]]
 
 -----------------------------------------------------------------------
 
@@ -192,7 +204,7 @@ p:SetNWInt("drcharge", 8 )
 end
 -----------------------------------
 function SWEP:Initialize()
-	self:SetWeaponHoldType("normal")
+	self:SetHoldType("normal")
 	sound.Add( {
 		name = "deadringer_beep_high",
 		channel = CHAN_AUTO,
@@ -371,7 +383,7 @@ function drthink()
 			v:SetNextSecondaryFire(CurTime() + 2)
 			end
 			p:DrawWorldModel(false)
-			for _,npc in pairs(ents.GetAll()) do 
+			--[[for _,npc in pairs(ents.GetAll()) do 
 				if npc:IsNPC() then 
 					for _,v in pairs(NPCs) do
 						if npc:GetClass() == v then
@@ -379,7 +391,8 @@ function drthink()
 						end
 					end
 				end
-			end
+			end]]--
+			p:SetNoTarget( true )
 			if p:KeyPressed( IN_ATTACK2 ) then
 			p:uncloak()
 			p:SetNWInt("drcharge", 2 )
@@ -426,7 +439,7 @@ if self.Owner:GetNWBool("CanAttack") == true and self.Owner:GetNWBool("Dead") ==
 
 self.Owner:SetNWBool(	"Status",			1)
 
-self.Weapon:EmitSound("buttons/blip1.wav", 40, 100, 1)
+self.Weapon:EmitSound("deadringer_beep_high")--, 40, 100, 1)
 
 else
 return
@@ -436,7 +449,7 @@ end
 function SWEP:SecondaryAttack()
 if self.Owner:GetNWBool("CanAttack") == true and self.Owner:GetNWBool("Dead") == false and self.Owner:GetNWBool("Status") != 4 then
 self.Owner:SetNWBool(	"Status",			2)
-self.Weapon:EmitSound("buttons/blip1.wav", 40, 73, 1)
+self.Weapon:EmitSound("deadringer_beep_low")--, 40, 73, 1)
 else
 return
 end
@@ -446,6 +459,9 @@ end
 local meta = FindMetaTable( "Player" );
 
 function meta:fakedeath()
+
+self:SetNWInt( "walk_speed", self:GetWalkSpeed() )
+self:SetNWInt( "run_speed", self:GetRunSpeed() )
 
 function RagRemove()
 	local corpse_serverside = GetConVar( "sv_dead_ringer_corpse_serverside" ):GetInt()
@@ -509,6 +525,8 @@ timer.Remove("DeathBeep3Timer")
 timer.Remove("DeathBeep4Timer")
 timer.Remove("DeathBeep5Timer")
 self:SetNWBool("Dead", true)
+self:SetWalkSpeed( self:GetNWInt( "walk_speed" )+200 )
+self:SetRunSpeed( self:GetNWInt( "run_speed" )+200 )
 self:SetNWBool("CanAttack", false)
 self:SetNWBool("Status", 3)
 self:SetNoDraw(true)
@@ -526,6 +544,8 @@ self:DrawShadow(false)
 self:AddDeaths( 1 )
 self:AddFrags( -1 )
 timer.Create( "FireImmuneTimer", 0.1, 4, function() SelfFireExtinguish() end )
+local damage = DamageInfo()
+
 random_sound = { 1, 2, 3 }
 local sound_math = table.Random( random_sound )
 local death_sound_enable = GetConVar( "sv_dead_ringer_death_sound" ):GetInt()
@@ -584,6 +604,14 @@ if death_sound_enable > 0 then
 end
 end
 
+function LeftTheVehicle( ply, vehicle )
+	if ply:GetNWBool("CanAttack") == false and ply:GetNWBool("Dead") == true and ply:GetNWBool("Status") == 3 then
+		self:SetNoDraw(true)
+	end
+end
+
+hook.Add( "PlayerLeaveVehicle", "DeadRingerVehicleLeave", LeftTheVehicle )
+
 ---------------------------
 --------"corpse"-------
 ---------------------------
@@ -597,8 +625,6 @@ if GetConVar( "sv_dead_ringer_corpse_serverside" ):GetInt() > 0 then
 	local col = self:GetColor()
 	local mat = self:GetMaterial()
 	local plycol = self:GetPlayerColor()
-	
-	local damage = DamageInfo()
 	
 -- create the ragdoll
 local ent = ents.Create("prop_ragdoll")
@@ -647,7 +673,7 @@ function meta:uncloak()
 		end
 	end
 	
-	for _,npc in pairs(ents.GetAll()) do 
+	--[[for _,npc in pairs(ents.GetAll()) do 
 		if npc:IsNPC() then 
 			for k,v in pairs(NPCs) do 
 				if npc:GetClass() == v then
@@ -655,9 +681,12 @@ function meta:uncloak()
 				end
 			end
 		end
-	end
+	end--]]
+	self:SetNoTarget( false )
 	
 	self:SetNWBool(	"Dead",			false)
+	self:SetWalkSpeed( self:GetNWInt( "walk_speed" ) )
+	self:SetRunSpeed( self:GetNWInt( "run_speed" ) )
 	self:SetNWBool(	"CanAttack",			true)
 	self:SetNWBool(	"Status",			4)
 	self:GetViewModel():SetMaterial("")
@@ -673,9 +702,7 @@ function meta:uncloak()
 
 	self:SetMaterial("")
 
-	--self:EmitSound(Sound( "player/spy_uncloak.wav"), 75, 100, 0.5 )
 	self:EmitSound(Sound( "player/spy_uncloak_feigndeath.wav"), 75, 100, 1 )
-
 
 	local effectdata = EffectData()
 	effectdata:SetOrigin( self:GetPos() )
