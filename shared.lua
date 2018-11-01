@@ -11,7 +11,7 @@
 --and it also shows up in the spawn list, under Team Fortress 2. Why didn't it before...?
 
 -- Message By Shadowysn
--- I just made some edits. Mainly the corpse being clientside and small stuff.
+-- I just made some little edits. Mainly the corpse being clientside and small stuff.
 
 ----------------------------
 --////////////////////////--
@@ -21,8 +21,8 @@ local REDUCEDAMAGE = 0.9
 
 --this SWEP uses models, textures and sounds from TF2, so be sure that you have it if you dont want to see an ERROR instead of swep model and etc...
 
-resource.AddFile( "materials/vgui/entities/weapon_dead_ringer.vmt" )
-resource.AddFile( "materials/vgui/entities/weapon_dead_ringer.vtf" )
+resource.AddFile( "materials/vgui/entities/weapon_dead_ringer_inf.vmt" )
+resource.AddFile( "materials/vgui/entities/weapon_dead_ringer_inf.vtf" )
 
 --------------------------------------------------------------------------
 if (SERVER) then
@@ -31,7 +31,6 @@ if (SERVER) then
 	SWEP.Weight				= 5
 	SWEP.AutoSwitchTo			= false
 	SWEP.AutoSwitchFrom		= false
-	SWEP.HoldType			= "normal"
 	
 	if !ConVarExists("sv_dead_ringer_corpse_time") then
 	CreateConVar( "sv_dead_ringer_corpse_time", 0, FCVAR_LUA_SERVER, 
@@ -52,8 +51,8 @@ end
 --------------------------------------------------------------------------
 
 if ( CLIENT ) then
-	SWEP.PrintName			= "Dead Ringer"	
-	SWEP.Author				= "NECROSSIN (fixed by Niandra Lades and Muddy, details by Shadowysn)"
+	SWEP.PrintName			= "Dead Ringer (OP Infinite)"	
+	SWEP.Author				= "NECROSSIN (fixed by Niandra Lades and Muddy, inf ver by Shadowysn)"
 	SWEP.DrawAmmo 			= false
 	SWEP.DrawCrosshair 		= false
 	SWEP.ViewModelFOV			= 55
@@ -76,7 +75,6 @@ if ( CLIENT ) then
 } )
 	CreateClientConVar( "cl_dead_ringer_blue_hud", 0, true, false, 
 		"Should the charge meter be blue?" )
-
 
 function drawdr()
 --here goes the new HUD
@@ -126,7 +124,7 @@ SWEP.Instructions   	= "Primary - turn on.\nSecondary - turn off or drop cloak."
 
 SWEP.ViewModel 				= "models/weapons/v_models/v_watch_pocket_spy.mdl"
 --SWEP.ViewModel 				= "models/weapons/cstrike/c_c4.mdl"
-SWEP.WorldModel 			= ""
+SWEP.WorldModel 			= "" --"models/weapons/c_models/c_pocket_watch/parts/c_pocket_watch.mdl" -- (By Shadowysn)
 
 SWEP.Weight					= 5 
 SWEP.AutoSwitchTo				= false
@@ -225,8 +223,8 @@ end
 -----------------------------------
 function SWEP:Deploy()
 if SERVER then
+		
 		self.Owner:DrawWorldModel(false) -- (Turn these to false if you dont want worldmodels)
-		self.Owner:DrawWorldModel(false)
 
 local ent = ents.Create("deadringer")			
 ent:SetOwner(self.Owner) 
@@ -267,10 +265,12 @@ if CLIENT then
 function drvm()
 
 if LocalPlayer():GetNWBool("Dead") == true then 
-LocalPlayer():GetViewModel():SetMaterial( "models/props_c17/fisheyelens")
+LocalPlayer():GetViewModel():SetMaterial("models/props_c17/fisheyelens")
+LocalPlayer():GetHands():SetMaterial("models/props_c17/fisheyelens")
 
 elseif LocalPlayer():GetNWBool("Dead") == false then
 LocalPlayer():GetViewModel():SetMaterial("")
+LocalPlayer():GetHands():SetMaterial("")
 end
 end
 hook.Add( "Think", "DRVM", drvm )
@@ -295,7 +295,8 @@ local reducedmg = getdmg * REDUCEDAMAGE
 	local infl
 		if attacker:GetClass() == "trigger_hurt" or attacker:GetClass() == "func_rotating" or attacker:GetClass() == "func_physbox" then
 			if p:GetNWBool("CanAttack") == true and p:GetNWBool("Dead") == false and p:GetNWBool("Status") == 1 then
-			dmginfo:SetDamage(math.random(5,15))
+--			dmginfo:SetDamage(math.random(5,15))
+			dmginfo:SetDamage(0)
 			p:fakedeath()
 			net.Start( "PlayerKilled" ) --the deathnotices use net instead of umsg
 			net.WriteEntity( p )
@@ -303,11 +304,13 @@ local reducedmg = getdmg * REDUCEDAMAGE
 			net.WriteString( attacker:GetClass() )
 			net.Broadcast()
 			elseif p:GetNWBool("CanAttack") == false and p:GetNWBool("Dead") == true and p:GetNWBool("Status") == 3 then
-			dmginfo:SetDamage(math.random(0,1))
+--			dmginfo:SetDamage(math.random(0,1))
+			dmginfo:SetDamage(0)
 			end
 		elseif attacker:IsPlayer() then
 			if p:GetNWBool("CanAttack") == true and p:GetNWBool("Dead") == false and p:GetNWBool("Status") == 1 then
-			dmginfo:SetDamage(getdmg - reducedmg )
+--			dmginfo:SetDamage(getdmg - reducedmg )
+			dmginfo:SetDamage(0)
 			p:fakedeath()
 			net.Start( "PlayerKilledByPlayer" )
 			net.WriteEntity( p )
@@ -315,11 +318,13 @@ local reducedmg = getdmg * REDUCEDAMAGE
 			net.WriteEntity( attacker )
 			net.Broadcast()
 			elseif p:GetNWBool("CanAttack") == false and p:GetNWBool("Dead") == true and p:GetNWBool("Status") == 3 then
-			dmginfo:SetDamage(getdmg - reducedmg )
+--			dmginfo:SetDamage(getdmg - reducedmg )
+			dmginfo:SetDamage(0)
 			end
 		elseif attacker:IsNPC() then
 			if p:GetNWBool("CanAttack") == true and p:GetNWBool("Dead") == false and p:GetNWBool("Status") == 1 then
-			dmginfo:SetDamage(getdmg - reducedmg )
+--			dmginfo:SetDamage(getdmg - reducedmg )
+			dmginfo:SetDamage(0)
 			p:fakedeath()
 			-- if npc has weapon (eg: metrocop with stunstick) then inflictor = npc's weapon
 			if IsValid(attacker:GetActiveWeapon()) then
@@ -334,11 +339,13 @@ local reducedmg = getdmg * REDUCEDAMAGE
 			net.WriteString( attacker:GetClass() )
 			net.Broadcast()
 			elseif p:GetNWBool("CanAttack") == false and p:GetNWBool("Dead") == true and p:GetNWBool("Status") == 3 then
-			dmginfo:SetDamage(getdmg - reducedmg )
+--			dmginfo:SetDamage(getdmg - reducedmg )
+			dmginfo:SetDamage(0)
 			end
 		else
 			if p:GetNWBool("CanAttack") == true and p:GetNWBool("Dead") == false and p:GetNWBool("Status") == 1 then
-			dmginfo:SetDamage(getdmg - reducedmg )
+--			dmginfo:SetDamage(getdmg - reducedmg )
+			dmginfo:SetDamage(0)
 			p:fakedeath()
 			net.Start( "PlayerKilled" )
 			net.WriteEntity( p )
@@ -346,7 +353,8 @@ local reducedmg = getdmg * REDUCEDAMAGE
 			net.WriteString( attacker:GetClass() )
 			net.Broadcast()
 			elseif p:GetNWBool("CanAttack") == false and p:GetNWBool("Dead") == true and p:GetNWBool("Status") == 3 then
-			dmginfo:SetDamage(getdmg - reducedmg )
+--			dmginfo:SetDamage(getdmg - reducedmg )
+			dmginfo:SetDamage(0)
 			end
 		end
 	end
@@ -374,8 +382,8 @@ function drthink()
 				end
 			elseif 	p:GetNWInt("drcharge") == 8 then
 			p:SetNWBool("Status", 1)
-			umsg.Start( "DRReady", p ) --this part isn't broken so uh i'm just gonna leave it?
-			umsg.End()
+			--umsg.Start( "DRReady", p ) --this part isn't broken so uh i'm just gonna leave it? -- {annoying sound}
+			--umsg.End()
 			end
 		elseif p:IsValid() and p:GetNWBool("Dead") == true and p:GetNWBool("Status") == 3 then
 			for _, v in pairs(p:GetWeapons()) do
@@ -383,25 +391,28 @@ function drthink()
 			v:SetNextSecondaryFire(CurTime() + 2)
 			end
 			p:DrawWorldModel(false)
-			--[[for _,npc in pairs(ents.GetAll()) do 
+			for _,npc in pairs(ents.GetAll()) do
 				if npc:IsNPC() then 
 					for _,v in pairs(NPCs) do
-						if npc:GetClass() == v then
-						npc:AddEntityRelationship(p,D_NU,99)
+						--if npc:GetClass() == v then
+						--npc:AddEntityRelationship(p,D_NU,99)
+						if npc:GetEnemy() == p then
+							npc:ClearEnemyMemory()
 						end
+						--end
 					end
 				end
-			end]]--
+			end
 			p:SetNoTarget( true )
 			if p:KeyPressed( IN_ATTACK2 ) then
 			p:uncloak()
-			p:SetNWInt("drcharge", 2 )
+			--p:SetNWInt("drcharge", 7 ) -- {originally 2, prob never need this}
 			end
 			if p:GetNWInt("drcharge") <= 8 and p:GetNWInt("drcharge") > 0 then
 			p.cltimer = p.cltimer or CurTime() + 1
 				if CurTime() > p.cltimer then
-				p.cltimer = CurTime() + 1
-				p:SetNWInt("drcharge", p:GetNWInt("drcharge") - 1)
+				--p.cltimer = CurTime() + 1 -- {nope.avi}
+				--p:SetNWInt("drcharge", p:GetNWInt("drcharge") - 1) -- {nope.avi}
 				end
 			elseif p:GetNWInt("drcharge") == 0 then
 				p:uncloak()
@@ -460,8 +471,20 @@ local meta = FindMetaTable( "Player" );
 
 function meta:fakedeath()
 
-self:SetNWInt( "walk_speed", self:GetWalkSpeed() )
-self:SetNWInt( "run_speed", self:GetRunSpeed() )
+	self:SetNWInt( "walk_speed", self:GetWalkSpeed() )
+	self:SetNWInt( "run_speed", self:GetRunSpeed() )
+	
+function GiveSpeedBoost()
+	self:SetWalkSpeed( self:GetNWInt( "walk_speed" )+200 )
+	self:SetRunSpeed( self:GetNWInt( "run_speed" )+200 )
+	self:EmitSound(Sound( "weapons/discipline_device_power_up.wav" ), 40, 100, 1)
+end
+
+function StopSpeedBoost()
+	self:SetWalkSpeed( self:GetNWInt( "walk_speed" ) )
+	self:SetRunSpeed( self:GetNWInt( "run_speed" ) )
+	self:EmitSound(Sound( "weapons/discipline_device_power_down.wav" ), 40, 100, 1)
+end
 
 function RagRemove()
 	local corpse_serverside = GetConVar( "sv_dead_ringer_corpse_serverside" ):GetInt()
@@ -517,6 +540,7 @@ function DeathSoundReady()
 	} )
 end
 
+timer.Remove("StopSpeedBoostTimer")
 timer.Remove("RagdollTimer1")
 RagRemove()
 timer.Remove("DeathBeep1Timer")
@@ -525,8 +549,12 @@ timer.Remove("DeathBeep3Timer")
 timer.Remove("DeathBeep4Timer")
 timer.Remove("DeathBeep5Timer")
 self:SetNWBool("Dead", true)
-self:SetWalkSpeed( self:GetNWInt( "walk_speed" )+200 )
-self:SetRunSpeed( self:GetNWInt( "run_speed" )+200 )
+timer.Simple( 0.02, function() -- If you're wondering about this, it delays the speed boost affecting the ragdoll
+	GiveSpeedBoost()
+end )
+timer.Create( "StopSpeedBoostTimer", 3.00, 1, function() 
+	StopSpeedBoost()
+end )
 self:SetNWBool("CanAttack", false)
 self:SetNWBool("Status", 3)
 self:SetNoDraw(true)
@@ -544,7 +572,6 @@ self:DrawShadow(false)
 self:AddDeaths( 1 )
 self:AddFrags( -1 )
 timer.Create( "FireImmuneTimer", 0.1, 4, function() SelfFireExtinguish() end )
-local damage = DamageInfo()
 
 random_sound = { 1, 2, 3 }
 local sound_math = table.Random( random_sound )
@@ -654,15 +681,46 @@ local ent = ents.Create("prop_ragdoll")
 			bone:SetPos(bonepos)
 			bone:SetAngles(boneang)
 			
-			bone:AddVelocity(vel*1.2)
+			bone:AddVelocity(vel*1.2) -- (originally 2)
 		end
 	end
 end
+	
+function VaporizeRagdoll(ent,dmginfo)
+	if ent:IsPlayer() then
+		if dmginfo:IsDamageType(DMG_DISSOLVE) then
+			local dissolve = ents.Create("env_entity_dissolver")
+			dissolve:SetKeyValue("magnitude",0)
+			dissolve:SetKeyValue("dissolvetype",0)
+			dissolve:SetPos(ent:GetPos())
+			dissolve:Spawn()
+			
+			if GetConVar( "sv_dead_ringer_corpse_serverside" ):GetInt() > 0 then
+				for _, entr in pairs(ents.GetAll()) do
+					if entr:GetClass() == "prop_ragdoll" and entr:GetOwner() == self and entr.Corpse then
+						dissolve:Fire("Dissolve",entr)
+						print("serveryay")
+					end
+				end -- serverside
+			else
+				local client_ragdoll = ent:GetRagdollEntity()
+				if client_ragdoll:IsValid() then
+					dissolve:Fire("Dissolve",client_ragdoll)
+					print("clientyay")
+				end -- clientside
+			end
+			dissolve:Fire("kill","",0.1)
+		end
+	end
+end
+	
+	hook.Add("EntityTakeDamage", "DeadRingerCheckDamage", VaporizeRagdoll)
 	
 end
 
 -- here goes the uncloak function
 function meta:uncloak()
+	
 	if self:Alive() then
 		local corpse_time = GetConVar( "sv_dead_ringer_corpse_time" ):GetInt()
 		if corpse_time > 50 then
@@ -685,8 +743,10 @@ function meta:uncloak()
 	self:SetNoTarget( false )
 	
 	self:SetNWBool(	"Dead",			false)
-	self:SetWalkSpeed( self:GetNWInt( "walk_speed" ) )
-	self:SetRunSpeed( self:GetNWInt( "run_speed" ) )
+	if ( timer.Exists( "StopSpeedBoostTimer" ) ) then
+	timer.Remove("StopSpeedBoostTimer")
+	StopSpeedBoost()
+	end
 	self:SetNWBool(	"CanAttack",			true)
 	self:SetNWBool(	"Status",			4)
 	self:GetViewModel():SetMaterial("")
@@ -698,11 +758,36 @@ function meta:uncloak()
 	self:AddFrags( 1 )
 	self:RemoveAllDecals()
 	
+	if !self:InVehicle() then
 	self:DrawWorldModel(true)
+	else
+	self:DrawWorldModel(false)
+	end
 
 	self:SetMaterial("")
 
+	self:EmitSound(Sound( "player/spy_uncloak.wav"), 75, 100, 0.5 ) -- (originally spy_uncloak_feigndeath)
+function SomethingFunny()
 	self:EmitSound(Sound( "player/spy_uncloak_feigndeath.wav"), 75, 100, 1 )
+end
+function SomethingFunnytoInitiate()
+SomethingFunny()
+SomethingFunny()
+SomethingFunny()
+SomethingFunny()
+SomethingFunny()
+SomethingFunny()
+SomethingFunny()
+SomethingFunny()
+SomethingFunny()
+SomethingFunny()
+SomethingFunny()
+SomethingFunny()
+SomethingFunny()
+SomethingFunny()
+SomethingFunny()
+end
+--SomethingFunnytoInitiate()
 
 	local effectdata = EffectData()
 	effectdata:SetOrigin( self:GetPos() )
