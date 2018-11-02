@@ -393,14 +393,14 @@ function drthink()
 			p:DrawWorldModel(false)
 			for _,npc in pairs(ents.GetAll()) do
 				if npc:IsNPC() then 
-					for _,v in pairs(NPCs) do
+					--for _,v in pairs(NPCs) do
 						--if npc:GetClass() == v then
 						--npc:AddEntityRelationship(p,D_NU,99)
 						if npc:GetEnemy() == p then
 							npc:ClearEnemyMemory()
 						end
 						--end
-					end
+					--end
 				end
 			end
 			p:SetNoTarget( true )
@@ -473,10 +473,12 @@ function meta:fakedeath()
 
 	self:SetNWInt( "walk_speed", self:GetWalkSpeed() )
 	self:SetNWInt( "run_speed", self:GetRunSpeed() )
+	self:SetNWInt( "walk_speed_boost", self:GetWalkSpeed()+200 )
+	self:SetNWInt( "run_speed_boost", self:GetRunSpeed()+200 )
 	
 function GiveSpeedBoost()
-	self:SetWalkSpeed( self:GetNWInt( "walk_speed" )+200 )
-	self:SetRunSpeed( self:GetNWInt( "run_speed" )+200 )
+	self:SetWalkSpeed( self:GetNWInt( "walk_speed_boost" ) )
+	self:SetRunSpeed( self:GetNWInt( "run_speed_boost" ) )
 	self:EmitSound(Sound( "weapons/discipline_device_power_up.wav" ), 40, 100, 1)
 end
 
@@ -540,7 +542,9 @@ function DeathSoundReady()
 	} )
 end
 
+timer.Remove("GiveSpeedBoostTimer")
 timer.Remove("StopSpeedBoostTimer")
+timer.Remove("VaporizeDisableTimer")
 timer.Remove("RagdollTimer1")
 RagRemove()
 timer.Remove("DeathBeep1Timer")
@@ -548,8 +552,12 @@ timer.Remove("DeathBeep2Timer")
 timer.Remove("DeathBeep3Timer")
 timer.Remove("DeathBeep4Timer")
 timer.Remove("DeathBeep5Timer")
+self:SetNWBool("Vaporize", true)
+timer.Create( "VaporizeDisableTimer", 0.1, 1, function()
+	self:SetNWBool("Vaporize", false)
+end )
 self:SetNWBool("Dead", true)
-timer.Simple( 0.02, function() -- If you're wondering about this, it delays the speed boost affecting the ragdoll
+timer.Create( "GiveSpeedBoostTimer", 0.02, 1, function()  -- If you're wondering about this, it delays the speed boost affecting the ragdoll
 	GiveSpeedBoost()
 end )
 timer.Create( "StopSpeedBoostTimer", 3.00, 1, function() 
@@ -684,38 +692,40 @@ local ent = ents.Create("prop_ragdoll")
 			bone:AddVelocity(vel*1.2) -- (originally 2)
 		end
 	end
-end
 	
 function VaporizeRagdoll(ent,dmginfo)
 	if ent:IsPlayer() then
-		if dmginfo:IsDamageType(DMG_DISSOLVE) then
-			local dissolve = ents.Create("env_entity_dissolver")
-			dissolve:SetKeyValue("magnitude",0)
-			dissolve:SetKeyValue("dissolvetype",0)
-			dissolve:SetPos(ent:GetPos())
-			dissolve:Spawn()
-			
-			if GetConVar( "sv_dead_ringer_corpse_serverside" ):GetInt() > 0 then
-				for _, entr in pairs(ents.GetAll()) do
-					if entr:GetClass() == "prop_ragdoll" and entr:GetOwner() == self and entr.Corpse then
-						dissolve:Fire("Dissolve",entr)
-						print("serveryay")
-					end
-				end -- serverside
-			else
-				local client_ragdoll = ent:GetRagdollEntity()
-				if client_ragdoll:IsValid() then
-					dissolve:Fire("Dissolve",client_ragdoll)
-					print("clientyay")
-				end -- clientside
+		if self:GetNWBool("Vaporize", true) then
+			if dmginfo:IsDamageType(DMG_DISSOLVE) then
+				local dissolve = ents.Create("env_entity_dissolver")
+				dissolve:SetKeyValue("magnitude",0)
+				dissolve:SetKeyValue("dissolvetype",0)
+				dissolve:SetKeyValue("target","dead_ringer_ragdoll_to_dissolve")
+				dissolve:SetPos(ent:GetPos())
+				dissolve:Spawn()
+				
+				if GetConVar( "sv_dead_ringer_corpse_serverside" ):GetInt() > 0 then
+					for _, entr in pairs(ents.GetAll()) do
+						if entr:GetClass() == "prop_ragdoll" and entr:GetOwner() == self and entr.Corpse then
+							entr:SetKeyValue("targetname","dead_ringer_ragdoll_to_dissolve")
+						end
+					end -- serverside
+				else
+					local client_ragdoll = ent:GetRagdollEntity()
+					if client_ragdoll:IsValid() then
+						client_ragdoll:SetKeyValue("targetname","dead_ringer_ragdoll_to_dissolve")
+					end -- clientside
+				end
+				dissolve:Fire("Dissolve","",0)
+				dissolve:Fire("kill","",0.1)
 			end
-			dissolve:Fire("kill","",0.1)
 		end
 	end
 end
 	
 	hook.Add("EntityTakeDamage", "DeadRingerCheckDamage", VaporizeRagdoll)
 	
+end
 end
 
 -- here goes the uncloak function
@@ -742,11 +752,14 @@ function meta:uncloak()
 	end--]]
 	self:SetNoTarget( false )
 	
+	self:SetNWBool("Vaporize", false)
 	self:SetNWBool(	"Dead",			false)
 	if ( timer.Exists( "StopSpeedBoostTimer" ) ) then
 	timer.Remove("StopSpeedBoostTimer")
 	StopSpeedBoost()
 	end
+	timer.Remove("GiveSpeedBoostTimer")
+	timer.Remove("VaporizeDisableTimer")
 	self:SetNWBool(	"CanAttack",			true)
 	self:SetNWBool(	"Status",			4)
 	self:GetViewModel():SetMaterial("")
@@ -768,7 +781,7 @@ function meta:uncloak()
 
 	self:EmitSound(Sound( "player/spy_uncloak.wav"), 75, 100, 0.5 ) -- (originally spy_uncloak_feigndeath)
 function SomethingFunny()
-	self:EmitSound(Sound( "player/spy_uncloak_feigndeath.wav"), 75, 100, 1 )
+	self:EmitSound(Sound( "player/spy_uncloak_feigndeath.wav"), 75, 100, 0.3 )
 end
 function SomethingFunnytoInitiate()
 SomethingFunny()
