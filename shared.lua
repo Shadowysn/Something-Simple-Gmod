@@ -677,7 +677,7 @@ local ent = ents.Create("prop_ragdoll")
 	ent:SetCollisionGroup(COLLISION_GROUP_WEAPON or COLLISION_GROUP_NONE)
 	ent.Corpse = true
 	
- --[[local vel = self:GetVelocity() -- NOTICE: Velocity moved to DeadRingerRagdollForce function.
+ local vel = self:GetVelocity()
  
 	for i = 1, ent:GetPhysicsObjectCount() do
 		local bone = ent:GetPhysicsObjectNum(i)
@@ -691,7 +691,7 @@ local ent = ents.Create("prop_ragdoll")
 			ent:GetPhysicsObject():AddVelocity(vel/12)
 			bone:AddVelocity(vel*1.2) -- (originally 2)
 		end
-	end--]]
+	end
 end
 
 function DeadRingerRagdollForce(ent,dmginfo)
@@ -700,36 +700,6 @@ function DeadRingerRagdollForce(ent,dmginfo)
 		--print("Player detected!")
 		if ent:IsValid() and ent:GetNWBool("Dead") == true and ent:GetNWBool("Status") == 3 then
 			--print("Invisibility validated!")
-			for _, entr in pairs(ents.GetAll()) do
-				if entr:GetClass() == "prop_ragdoll" and entr:GetOwner() == ent and entr.Corpse then
-				
-					if IsValid(entr:GetPhysicsObject()) then
-					
-						for k = 1, entr:GetPhysicsObjectCount() do
-						
-							local bone = entr:GetPhysicsObjectNum(k)
-							entr:GetPhysicsObject():SetVelocity(dmginfo:GetDamageForce()/5)
-							
-							if bone and bone.IsValid and bone:IsValid() then
-								local vel = self:GetVelocity()
-								local bonepos, boneang = self:GetBonePosition(ent:TranslatePhysBoneToBone(k))
-								
-								bone:SetPos(bonepos)
-								bone:SetAngles(boneang)
-								
-								ent:GetPhysicsObject():AddVelocity(vel/15)
-								
-								bone:AddVelocity(vel*1.2) -- (originally 2)
-								bone:AddVelocity(dmginfo:GetDamageForce()/35)
-							end
-						
-						end
-					
-					end
-				
-				end
-			end
-			
 			-- Vaporize Check
 			if ent:GetNWBool("Vaporize", true) and dmginfo:IsDamageType(DMG_DISSOLVE) then
 				--print("Damage found as dissolve!")
