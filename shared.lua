@@ -94,7 +94,7 @@ local energy = math.max(LocalPlayer():GetNWInt("drcharge"), 0)
 if GetConVar( "cl_dead_ringer_blue_hud" ):GetInt() == 0 then
 	draw.RoundedBox(2,44, ScrH() - h - 168, (energy / 8) * 77, 15, Color(255,222,255,255))
 else
-	draw.RoundedBox(2,44, ScrH() - h - 168, (energy / 8) * 77, 15, Color(255,255,222,255))
+	draw.RoundedBox(2,44, ScrH() - h - 168, (energy / 8) * 77, 15, Color(242,235,225,255))
 end
 surface.SetDrawColor(255,255,255,255)
 surface.DrawOutlinedRect(44, ScrH() - h - 168, 77, 15)
@@ -427,16 +427,15 @@ hook.Add( "Think", "DR_ENERGY", drthink )
 end
 
 function DRFootsteps( p, vPos, iFoot, strSoundName, fVolume, pFilter )
-
-if p:Alive() and p:IsValid() then
-
-if p:GetNWBool("CanAttack") == false and p:GetNWBool("Dead") == true and p:GetNWBool("Status") == 3 then
-
-if CLIENT then
-return true
-end
-end
-end
+	
+	if p:Alive() and p:IsValid() then
+		if p:GetNWBool("CanAttack") == false and p:GetNWBool("Dead") == true and p:GetNWBool("Status") == 3 then
+			if CLIENT then
+				return true
+			end
+		end
+	end
+	
 end
 
 hook.Add("PlayerFootstep","DeadRingerFootsteps",DRFootsteps)
@@ -677,44 +676,92 @@ local ent = ents.Create("prop_ragdoll")
 	ent:Spawn()	
 	ent:SetCollisionGroup(COLLISION_GROUP_WEAPON or COLLISION_GROUP_NONE)
 	ent.Corpse = true
-
- local vel = self:GetVelocity()
-
+	
+ --[[local vel = self:GetVelocity() -- NOTICE: Velocity moved to DeadRingerRagdollForce function.
+ 
 	for i = 1, ent:GetPhysicsObjectCount() do
 		local bone = ent:GetPhysicsObjectNum(i)
-		
+	
 		if bone and bone.IsValid and bone:IsValid() then
 			local bonepos, boneang = self:GetBonePosition(ent:TranslatePhysBoneToBone(i))
 			
 			bone:SetPos(bonepos)
 			bone:SetAngles(boneang)
 			
+			ent:GetPhysicsObject():AddVelocity(vel/12)
 			bone:AddVelocity(vel*1.2) -- (originally 2)
 		end
-	end
-	
-function VaporizeRagdoll(ent,dmginfo)
+	end--]]
+end
+
+function DeadRingerRagdollForce(ent,dmginfo)
+--print("Hook called!")
 	if ent:IsPlayer() then
-		if self:GetNWBool("Vaporize", true) then
-			if dmginfo:IsDamageType(DMG_DISSOLVE) then
+		--print("Player detected!")
+		if ent:IsValid() and ent:GetNWBool("Dead") == true and ent:GetNWBool("Status") == 3 then
+			--print("Invisibility validated!")
+			for _, entr in pairs(ents.GetAll()) do
+				if entr:GetClass() == "prop_ragdoll" and entr:GetOwner() == ent and entr.Corpse then
+				
+					if IsValid(entr:GetPhysicsObject()) then
+					
+						for k = 1, entr:GetPhysicsObjectCount() do
+						
+							local bone = entr:GetPhysicsObjectNum(k)
+							entr:GetPhysicsObject():SetVelocity(dmginfo:GetDamageForce()/5)
+							
+							if bone and bone.IsValid and bone:IsValid() then
+								local vel = self:GetVelocity()
+								local bonepos, boneang = self:GetBonePosition(ent:TranslatePhysBoneToBone(k))
+								
+								bone:SetPos(bonepos)
+								bone:SetAngles(boneang)
+								
+								ent:GetPhysicsObject():AddVelocity(vel/15)
+								
+								bone:AddVelocity(vel*1.2) -- (originally 2)
+								bone:AddVelocity(dmginfo:GetDamageForce()/35)
+							end
+						
+						end
+					
+					end
+				
+				end
+			end
+			
+			-- Vaporize Check
+			if ent:GetNWBool("Vaporize", true) and dmginfo:IsDamageType(DMG_DISSOLVE) then
+				--print("Damage found as dissolve!")
 				local dissolve = ents.Create("env_entity_dissolver")
 				dissolve:SetKeyValue("magnitude",0)
 				dissolve:SetKeyValue("dissolvetype",0)
 				dissolve:SetKeyValue("target","dead_ringer_ragdoll_to_dissolve")
 				dissolve:SetPos(ent:GetPos())
 				dissolve:Spawn()
-				
+				-- Actual Vaporization
 				if GetConVar( "sv_dead_ringer_corpse_serverside" ):GetInt() > 0 then
 					for _, entr in pairs(ents.GetAll()) do
-						if entr:GetClass() == "prop_ragdoll" and entr:GetOwner() == self and entr.Corpse then
+						if entr:GetClass() == "prop_ragdoll" and entr:GetOwner() == ent and entr.Corpse then
 							entr:SetKeyValue("targetname","dead_ringer_ragdoll_to_dissolve")
+							for j = 1, entr:GetPhysicsObjectCount() do
+								local bone = entr:GetPhysicsObjectNum(j)
+								if bone and bone.IsValid and bone:IsValid() then
+									bonea:EnableGravity( false )
+									entr:GetPhysicsObject():EnableGravity( false )
+									bone:SetVelocity( ent:GetVelocity()/5 )
+								end
+							end
+							--print("Serverside ragdoll dissolve called!")
 						end
 					end -- serverside
-				else
+				else if GetConVar( "sv_dead_ringer_corpse_serverside" ):GetInt() < 1 then
 					local client_ragdoll = ent:GetRagdollEntity()
 					if client_ragdoll:IsValid() then
 						client_ragdoll:SetKeyValue("targetname","dead_ringer_ragdoll_to_dissolve")
+						--print("Clientside ragdoll dissolve called!")
 					end -- clientside
+				end
 				end
 				dissolve:Fire("Dissolve","",0)
 				dissolve:Fire("kill","",0.1)
@@ -723,9 +770,8 @@ function VaporizeRagdoll(ent,dmginfo)
 	end
 end
 	
-	hook.Add("EntityTakeDamage", "DeadRingerCheckDamage", VaporizeRagdoll)
+	hook.Add("EntityTakeDamage", "DeadRingerCheckDamage", DeadRingerRagdollForce)
 	
-end
 end
 
 -- here goes the uncloak function
