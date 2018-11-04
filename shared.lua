@@ -747,7 +747,7 @@ function DeadRingerRagdollForce(ent,dmginfo)
 							for j = 1, entr:GetPhysicsObjectCount() do
 								local bone = entr:GetPhysicsObjectNum(j)
 								if bone and bone.IsValid and bone:IsValid() then
-									bonea:EnableGravity( false )
+									bone:EnableGravity( false )
 									entr:GetPhysicsObject():EnableGravity( false )
 									bone:SetVelocity( ent:GetVelocity()/5 )
 								end
