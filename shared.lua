@@ -75,14 +75,16 @@ if ( CLIENT ) then
 } )
 	CreateClientConVar( "cl_dead_ringer_blue_hud", 0, true, false, 
 		"Should the charge meter be blue?" )
+	CreateClientConVar( "cl_dead_ringer_hud_enable", 1, true, false, 
+		"Should the dead ringer hud be visible?" )
 
 function drawdr()
 --here goes the new HUD
-if LocalPlayer():GetNWBool("Status") == 1 or LocalPlayer():GetNWBool("Status") == 3 or LocalPlayer():GetNWBool("Status") == 4 and LocalPlayer():Alive() then
+if LocalPlayer():GetNWBool("DeadRingerStatus") == 1 or LocalPlayer():GetNWBool("DeadRingerStatus") == 3 or LocalPlayer():GetNWBool("DeadRingerStatus") == 4 and LocalPlayer():Alive() and GetConVar( "cl_dead_ringer_hud_enable" ):GetInt() > 0 then
 local background = surface.GetTextureID("HUD/misc_ammo_area_red")
 local background2 = surface.GetTextureID("HUD/misc_ammo_area_blue")
 local w,h = surface.GetTextureSize(surface.GetTextureID("HUD/misc_ammo_area_red"))
-	if GetConVar( "cl_dead_ringer_blue_hud" ):GetInt() == 0 then
+	if GetConVar( "cl_dead_ringer_blue_hud" ):GetInt() < 1 then
 	surface.SetTexture(background)
 	else
 	surface.SetTexture(background2)
@@ -108,6 +110,26 @@ local function DRReady(um)
 surface.PlaySound( "player/recharged.wav" )
 end
 usermessage.Hook("DRReady", DRReady)
+
+local function DRBeepHigh(um)
+sound.Play( "buttons/blip1.wav", LocalPlayer():GetPos(), 90, 100, 1 )
+end
+usermessage.Hook("DRBeepHigh", DRBeepHigh)
+
+local function DRBeepLow(um)
+sound.Play( "buttons/blip1.wav", LocalPlayer():GetPos(), 75, 73, 1 )
+end
+usermessage.Hook("DRBeepLow", DRBeepLow)
+
+local function DRSpeedBoostGiveSound(um)
+sound.Play( "weapons/discipline_device_power_up.wav", LocalPlayer():GetPos(), 90, 100, 1 )
+end
+usermessage.Hook("DRSpeedBoostGiveSound", DRSpeedBoostGiveSound)
+
+local function DRSpeedBoostStopSound(um)
+sound.Play( "weapons/discipline_device_power_down.wav", LocalPlayer():GetPos(), 90, 100, 1 )
+end
+usermessage.Hook("DRSpeedBoostStopSound", DRSpeedBoostStopSound)
 end 
 
 -------------------------------------------------------------------
@@ -185,16 +207,16 @@ SWEP.Secondary.Ammo			= "none"
 
 -- disable dead rnger on spawn
 if SERVER then
-	function dringerspawn( p )
-if p:GetNWBool("Dead") == true then
-p:SetNWBool(	"Status",			0)
+	local function dringerspawn( p )
+if p:GetNWBool("DeadRingerDead") == true then
+p:SetNWBool(	"DeadRingerStatus",			0)
 p:GetViewModel():SetMaterial("")
 p:SetMaterial("")
 p:SetColor(255,255,255,255)
 end
-p:SetNWBool(	"Status",			0)
-p:SetNWBool(	"Dead",			false)
-p:SetNWBool(	"CanAttack",			true)
+p:SetNWBool(	"DeadRingerStatus",			0)
+p:SetNWBool(	"DeadRingerDead",			false)
+p:SetNWBool(	"DeadRingerCanAttack",			true)
 p:SetNWInt("drcharge", 8 )
 
 	end
@@ -203,7 +225,7 @@ end
 -----------------------------------
 function SWEP:Initialize()
 	self:SetHoldType("normal")
-	sound.Add( {
+	--[[sound.Add( {
 		name = "deadringer_beep_high",
 		channel = CHAN_AUTO,
 		volume = 1,
@@ -218,7 +240,7 @@ function SWEP:Initialize()
 		level = 40,
 		pitch = { 73 },
 		sound = "buttons/blip1.wav"
-	} )
+	} )--]]
 end
 -----------------------------------
 function SWEP:Deploy()
@@ -238,8 +260,8 @@ end
 self.Weapon:SendWeaponAnim( ACT_VM_DRAW )
 --timer.Simple( 0.8, function() self.Weapon:SendWeaponAnim( ACT_VM_IDLE ) end )
 self.Weapon:EmitSound(Sound( "weapons/draw_dead_ringer_spy.wav" ), 40, 100, 0.6 )
-if !self.Owner:GetNWBool("Status") == 3 or !self.Owner:GetNWBool("Status") == 4 or !self.Owner:GetNWBool("Status") == 1 then
-self.Owner:SetNWBool(	"Status",			2)
+if !self.Owner:GetNWBool("DeadRingerStatus") == 3 or !self.Owner:GetNWBool("DeadRingerStatus") == 4 or !self.Owner:GetNWBool("DeadRingerStatus") == 1 then
+self.Owner:SetNWBool(	"DeadRingerStatus",			2)
 end
 return true
 end
@@ -262,16 +284,28 @@ end
 -----------------------------------
 
 if CLIENT then
-function drvm()
+local function drvm()
+if not ( GAMEMODE_NAME == "terrortown" ) then
 
-if LocalPlayer():GetNWBool("Dead") == true then 
-LocalPlayer():GetViewModel():SetMaterial("models/props_c17/fisheyelens")
-LocalPlayer():GetHands():SetMaterial("models/props_c17/fisheyelens")
-
-elseif LocalPlayer():GetNWBool("Dead") == false then
-LocalPlayer():GetViewModel():SetMaterial("")
-LocalPlayer():GetHands():SetMaterial("")
+	if LocalPlayer():GetNWBool("DeadRingerDead") == true then 
+	if LocalPlayer():GetViewModel():IsValid() and LocalPlayer():GetViewModel():GetMaterial("") then
+		LocalPlayer():GetViewModel():SetMaterial("models/props_c17/fisheyelens")
+	end
+	if LocalPlayer():GetHands():IsValid() and LocalPlayer():GetHands():GetMaterial("") then
+		LocalPlayer():GetHands():SetMaterial("models/props_c17/fisheyelens")
+	end
+	
+	elseif LocalPlayer():GetNWBool("DeadRingerDead") == false then
+	if LocalPlayer():GetViewModel():IsValid() and LocalPlayer():GetViewModel():GetMaterial("models/props_c17/fisheyelens") then
+		LocalPlayer():GetViewModel():SetMaterial("")
+	end
+	if LocalPlayer():GetHands():IsValid() and LocalPlayer():GetHands():GetMaterial("models/props_c17/fisheyelens") then
+		LocalPlayer():GetHands():SetMaterial("")
+	end
+	end
+	
 end
+
 end
 hook.Add( "Think", "DRVM", drvm )
 end
@@ -286,6 +320,7 @@ if SERVER then
 
 util.AddNetworkString( "PlayerKilled" )
 util.AddNetworkString( "PlayerKilledByPlayer" )
+util.AddNetworkString( "PlayerKilledSelf" )
 function checkifwehaveourdr(ent,dmginfo)
 local attacker = dmginfo:GetAttacker()
 local getdmg = dmginfo:GetDamage()
@@ -293,39 +328,46 @@ local reducedmg = getdmg * REDUCEDAMAGE
 	if ent:IsPlayer() then
 	local p = ent
 	local infl
-		if attacker:GetClass() == "trigger_hurt" or attacker:GetClass() == "func_rotating" or attacker:GetClass() == "func_physbox" then
-			if p:GetNWBool("CanAttack") == true and p:GetNWBool("Dead") == false and p:GetNWBool("Status") == 1 then
+		if attacker:GetClass() == "func_rotating" or attacker:GetClass() == "func_physbox" then
+			if p:GetNWBool("DeadRingerCanAttack") == true and p:GetNWBool("DeadRingerDead") == false and p:GetNWBool("DeadRingerStatus") == 1 then
 --			dmginfo:SetDamage(math.random(5,15))
 			dmginfo:SetDamage(0)
-			p:fakedeath()
+			p:DRfakedeath()
 			net.Start( "PlayerKilled" ) --the deathnotices use net instead of umsg
 			net.WriteEntity( p )
 			net.WriteString( attacker:GetClass() )
 			net.WriteString( attacker:GetClass() )
+			net.WriteString( p:GetClass() )
 			net.Broadcast()
-			elseif p:GetNWBool("CanAttack") == false and p:GetNWBool("Dead") == true and p:GetNWBool("Status") == 3 then
+			MsgAll( p:Nick() .. " was killed by " .. attacker:GetClass() .. "\n" )
+			elseif p:GetNWBool("DeadRingerCanAttack") == false and p:GetNWBool("DeadRingerDead") == true and p:GetNWBool("DeadRingerStatus") == 3 then
 --			dmginfo:SetDamage(math.random(0,1))
 			dmginfo:SetDamage(0)
 			end
 		elseif attacker:IsPlayer() then
-			if p:GetNWBool("CanAttack") == true and p:GetNWBool("Dead") == false and p:GetNWBool("Status") == 1 then
+			if p:GetNWBool("DeadRingerCanAttack") == true and p:GetNWBool("DeadRingerDead") == false and p:GetNWBool("DeadRingerStatus") == 1 then
 --			dmginfo:SetDamage(getdmg - reducedmg )
 			dmginfo:SetDamage(0)
-			p:fakedeath()
+			p:DRfakedeath()
 			net.Start( "PlayerKilledByPlayer" )
 			net.WriteEntity( p )
 			net.WriteString( attacker:GetActiveWeapon():GetClass() )
 			net.WriteEntity( attacker )
 			net.Broadcast()
-			elseif p:GetNWBool("CanAttack") == false and p:GetNWBool("Dead") == true and p:GetNWBool("Status") == 3 then
+			if attacker == p then
+				MsgAll( p:Nick() .. " suicided!\n" )
+			else
+				MsgAll( attacker:Nick() .. " killed " .. p:Nick() .. " using " .. attacker:GetActiveWeapon():GetClass() .. "\n" )
+			end
+			elseif p:GetNWBool("DeadRingerCanAttack") == false and p:GetNWBool("DeadRingerDead") == true and p:GetNWBool("DeadRingerStatus") == 3 then
 --			dmginfo:SetDamage(getdmg - reducedmg )
 			dmginfo:SetDamage(0)
 			end
 		elseif attacker:IsNPC() then
-			if p:GetNWBool("CanAttack") == true and p:GetNWBool("Dead") == false and p:GetNWBool("Status") == 1 then
+			if p:GetNWBool("DeadRingerCanAttack") == true and p:GetNWBool("DeadRingerDead") == false and p:GetNWBool("DeadRingerStatus") == 1 then
 --			dmginfo:SetDamage(getdmg - reducedmg )
 			dmginfo:SetDamage(0)
-			p:fakedeath()
+			p:DRfakedeath()
 			-- if npc has weapon (eg: metrocop with stunstick) then inflictor = npc's weapon
 			if IsValid(attacker:GetActiveWeapon()) then
 			infl = attacker:GetActiveWeapon():GetClass()
@@ -338,23 +380,50 @@ local reducedmg = getdmg * REDUCEDAMAGE
 			net.WriteString( infl )
 			net.WriteString( attacker:GetClass() )
 			net.Broadcast()
-			elseif p:GetNWBool("CanAttack") == false and p:GetNWBool("Dead") == true and p:GetNWBool("Status") == 3 then
+			MsgAll( p:Nick() .. " was killed by " .. attacker:GetClass() .. "\n" )
+			elseif p:GetNWBool("DeadRingerCanAttack") == false and p:GetNWBool("DeadRingerDead") == true and p:GetNWBool("DeadRingerStatus") == 3 then
 --			dmginfo:SetDamage(getdmg - reducedmg )
 			dmginfo:SetDamage(0)
 			end
 		else
-			if p:GetNWBool("CanAttack") == true and p:GetNWBool("Dead") == false and p:GetNWBool("Status") == 1 then
+			if p:GetNWBool("DeadRingerCanAttack") == true and p:GetNWBool("DeadRingerDead") == false and p:GetNWBool("DeadRingerStatus") == 1 then
 --			dmginfo:SetDamage(getdmg - reducedmg )
+		--[[if attacker:IsValid() then
+			if attacker:GetClass() == "trigger_hurt" then
+				local triggerhurt_table = attacker:GetKeyValues()
+				local th_table_getkeys = table.GetKeys(triggerhurt_table)
+				if th_table_getkeys 
+					
+				end
+				dmginfo:SetDamage(0)
+				else if attacker:GetClass() == "func_rotating" or attacker:GetClass() == "func_physbox" then
+				dmginfo:SetDamage(0)
+				end
+			end
+		end--]]
 			dmginfo:SetDamage(0)
-			p:fakedeath()
+			p:DRfakedeath()
+			if attacker == p or attacker:GetClass() == "trigger_hurt" then
+			net.Start( "PlayerKilledSelf" )
+			else
 			net.Start( "PlayerKilled" )
+			end
 			net.WriteEntity( p )
 			net.WriteString( attacker:GetClass() )
 			net.WriteString( attacker:GetClass() )
 			net.Broadcast()
-			elseif p:GetNWBool("CanAttack") == false and p:GetNWBool("Dead") == true and p:GetNWBool("Status") == 3 then
+			if attacker == p or attacker:GetClass() == "trigger_hurt" then
+				MsgAll( p:Nick() .. " suicided!\n" )
+			else
+				MsgAll( p:Nick() .. " was killed by " .. attacker:GetClass() .. "\n" )
+			end
+			elseif p:GetNWBool("DeadRingerCanAttack") == false and p:GetNWBool("DeadRingerDead") == true and p:GetNWBool("DeadRingerStatus") == 3 then
 --			dmginfo:SetDamage(getdmg - reducedmg )
-			dmginfo:SetDamage(0)
+			if attacker:GetClass() == "trigger_hurt" or attacker:GetClass() == "func_rotating" or attacker:GetClass() == "func_physbox" then
+				dmginfo:SetDamage(0)
+				else
+				dmginfo:SetDamage(0)
+			end
 			end
 		end
 	end
@@ -363,8 +432,8 @@ hook.Add("EntityTakeDamage", "CheckIfWeHaveDeadRinger", checkifwehaveourdr)
 end
 if SERVER then
 function disablefakecorpseondeath(p, attacker)
-if p:IsValid() and p:GetNWBool("CanAttack") == false and p:GetNWBool("Dead") == true and p:GetNWBool("Status") == 3 then
-p:uncloak()
+if p:IsValid() and p:GetNWBool("DeadRingerCanAttack") == false and p:GetNWBool("DeadRingerDead") == true and p:GetNWBool("DeadRingerStatus") == 3 then
+p:DRuncloak()
 
 end
 end
@@ -373,7 +442,7 @@ hook.Add("DoPlayerDeath", "RemoveFakeCorpse", disablefakecorpseondeath)
 -- here goes the dead ringer charge/regenerating system
 function drthink()
 	for _, p in pairs(player.GetAll()) do
-		if p:IsValid() and p:GetNWBool("Dead") == false and p:GetNWBool("Status") == 4 then
+		if p:IsValid() and p:GetNWBool("DeadRingerDead") == false and p:GetNWBool("DeadRingerStatus") == 4 then
 			if p:GetNWInt("drcharge") < 8 then
 			p.drtimer = p.drtimer or CurTime() + 2
 				if CurTime() > p.drtimer then
@@ -381,11 +450,11 @@ function drthink()
 				p:SetNWInt("drcharge", p:GetNWInt("drcharge") + 1)
 				end
 			elseif 	p:GetNWInt("drcharge") == 8 then
-			p:SetNWBool("Status", 1)
+			p:SetNWBool("DeadRingerStatus", 1)
 			--umsg.Start( "DRReady", p ) --this part isn't broken so uh i'm just gonna leave it? -- {annoying sound}
 			--umsg.End()
 			end
-		elseif p:IsValid() and p:GetNWBool("Dead") == true and p:GetNWBool("Status") == 3 then
+		elseif p:IsValid() and p:GetNWBool("DeadRingerDead") == true and p:GetNWBool("DeadRingerStatus") == 3 then
 			for _, v in pairs(p:GetWeapons()) do
 			v:SetNextPrimaryFire(CurTime() + 2)
 			v:SetNextSecondaryFire(CurTime() + 2)
@@ -405,7 +474,7 @@ function drthink()
 			end
 			p:SetNoTarget( true )
 			if p:KeyPressed( IN_ATTACK2 ) then
-			p:uncloak()
+			p:DRuncloak()
 			--p:SetNWInt("drcharge", 7 ) -- {originally 2, prob never need this}
 			end
 			if p:GetNWInt("drcharge") <= 8 and p:GetNWInt("drcharge") > 0 then
@@ -415,7 +484,7 @@ function drthink()
 				--p:SetNWInt("drcharge", p:GetNWInt("drcharge") - 1) -- {nope.avi}
 				end
 			elseif p:GetNWInt("drcharge") == 0 then
-				p:uncloak()
+				p:DRuncloak()
 			end
 		end
 	end
@@ -429,7 +498,7 @@ end
 function DRFootsteps( p, vPos, iFoot, strSoundName, fVolume, pFilter )
 	
 	if p:Alive() and p:IsValid() then
-		if p:GetNWBool("CanAttack") == false and p:GetNWBool("Dead") == true and p:GetNWBool("Status") == 3 then
+		if p:GetNWBool("DeadRingerCanAttack") == false and p:GetNWBool("DeadRingerDead") == true and p:GetNWBool("DeadRingerStatus") == 3 then
 			if CLIENT then
 				return true
 			end
@@ -445,11 +514,13 @@ hook.Add("PlayerFootstep","DeadRingerFootsteps",DRFootsteps)
 
 function SWEP:PrimaryAttack()
 
-if self.Owner:GetNWBool("CanAttack") == true and self.Owner:GetNWBool("Dead") == false and self.Owner:GetNWBool("Status") != 4 then
+if self.Owner:GetNWBool("DeadRingerCanAttack") == true and self.Owner:GetNWBool("DeadRingerDead") == false and self.Owner:GetNWBool("DeadRingerStatus") != 4 then
 
-self.Owner:SetNWBool(	"Status",			1)
+self.Owner:SetNWBool(	"DeadRingerStatus",			1)
 
-self.Weapon:EmitSound("deadringer_beep_high")--, 40, 100, 1)
+--self.Weapon:EmitSound("deadringer_beep_high")--, 40, 100, 1)
+umsg.Start( "DRBeepHigh", self.Owner )
+umsg.End()
 
 else
 return
@@ -457,9 +528,15 @@ end
 end
 
 function SWEP:SecondaryAttack()
-if self.Owner:GetNWBool("CanAttack") == true and self.Owner:GetNWBool("Dead") == false and self.Owner:GetNWBool("Status") != 4 then
-self.Owner:SetNWBool(	"Status",			2)
-self.Weapon:EmitSound("deadringer_beep_low")--, 40, 73, 1)
+
+if self.Owner:GetNWBool("DeadRingerCanAttack") == true and self.Owner:GetNWBool("DeadRingerDead") == false and self.Owner:GetNWBool("DeadRingerStatus") != 4 then
+
+self.Owner:SetNWBool(	"DeadRingerStatus",			2)
+
+--self.Weapon:EmitSound("deadringer_beep_low")--, 40, 73, 1)
+umsg.Start( "DRBeepLow", self.Owner )
+umsg.End()
+
 else
 return
 end
@@ -468,26 +545,35 @@ end
 
 local meta = FindMetaTable( "Player" );
 
-function meta:fakedeath()
+function meta:DRfakedeath()
 
 	self:SetNWInt( "walk_speed", self:GetWalkSpeed() )
 	self:SetNWInt( "run_speed", self:GetRunSpeed() )
 	self:SetNWInt( "walk_speed_boost", self:GetWalkSpeed()+200 )
 	self:SetNWInt( "run_speed_boost", self:GetRunSpeed()+200 )
 	
-function GiveSpeedBoost()
+function DeadRingerGiveSpeedBoost()
 	self:SetWalkSpeed( self:GetNWInt( "walk_speed_boost" ) )
 	self:SetRunSpeed( self:GetNWInt( "run_speed_boost" ) )
-	self:EmitSound(Sound( "weapons/discipline_device_power_up.wav" ), 40, 100, 1)
+	
+	umsg.Start( "DRSpeedBoostGiveSound", p )
+	umsg.End()
+	--self:EmitSound(Sound( "weapons/discipline_device_power_up.wav" ), 40, 100, 1)
 end
 
-function StopSpeedBoost()
-	self:SetWalkSpeed( self:GetNWInt( "walk_speed" ) )
-	self:SetRunSpeed( self:GetNWInt( "run_speed" ) )
-	self:EmitSound(Sound( "weapons/discipline_device_power_down.wav" ), 40, 100, 1)
+function DeadRingerStopSpeedBoost()
+	if self:GetWalkSpeed() < ( self:GetNWInt( "walk_speed_boost" ) + 1 ) then
+		self:SetWalkSpeed( self:GetNWInt( "walk_speed" ) )
+	end
+	if self:GetRunSpeed() < ( self:GetNWInt( "run_speed_boost" ) + 1 ) then
+		self:SetRunSpeed( self:GetNWInt( "run_speed" ) )
+	end
+	umsg.Start( "DRSpeedBoostStopSound", p )
+	umsg.End()
+	--self:EmitSound(Sound( "weapons/discipline_device_power_down.wav" ), 40, 100, 1)
 end
 
-function RagRemove()
+function DeadRingerRagRemove()
 	local corpse_serverside = GetConVar( "sv_dead_ringer_corpse_serverside" ):GetInt()
 	-- (serverside)
 		if ( self:Alive() ) then
@@ -514,7 +600,9 @@ function SelfFireExtinguish()
 				end
 			end
 			else
+			if self:GetRagdollEntity():IsValid() then
 			self:GetRagdollEntity():Ignite( 30, 0 ) -- clientside
+			end
 		end
 	end
 end
@@ -541,29 +629,33 @@ function DeathSoundReady()
 	} )
 end
 
-timer.Remove("GiveSpeedBoostTimer")
-timer.Remove("StopSpeedBoostTimer")
-timer.Remove("VaporizeDisableTimer")
-timer.Remove("RagdollTimer1")
-RagRemove()
+timer.Remove("DeadRingerGiveSpeedBoostTimer")
+timer.Remove("DeadRingerStopSpeedBoostTimer")
+timer.Remove("DeadRingerVaporizeDisableTimer")
+timer.Remove("DeadRingerRagdollTimer1")
+DeadRingerRagRemove()
+
 timer.Remove("DeathBeep1Timer")
 timer.Remove("DeathBeep2Timer")
 timer.Remove("DeathBeep3Timer")
 timer.Remove("DeathBeep4Timer")
 timer.Remove("DeathBeep5Timer")
-self:SetNWBool("Vaporize", true)
-timer.Create( "VaporizeDisableTimer", 0.1, 1, function()
-	self:SetNWBool("Vaporize", false)
+
+timer.Remove("DeadRingerCloakFadeinTimer")
+
+self:SetNWBool("DeadRingerVaporize", true)
+timer.Create( "DeadRingerVaporizeDisableTimer", 0.1, 1, function()
+	self:SetNWBool("DeadRingerVaporize", false)
 end )
-self:SetNWBool("Dead", true)
-timer.Create( "GiveSpeedBoostTimer", 0.02, 1, function()  -- If you're wondering about this, it delays the speed boost affecting the ragdoll
-	GiveSpeedBoost()
+self:SetNWBool("DeadRingerDead", true)
+timer.Create( "DeadRingerGiveSpeedBoostTimer", 0.02, 1, function()  -- If you're wondering about this, it delays the speed boost affecting the ragdoll
+	DeadRingerGiveSpeedBoost()
 end )
-timer.Create( "StopSpeedBoostTimer", 3.00, 1, function() 
-	StopSpeedBoost()
+timer.Create( "DeadRingerStopSpeedBoostTimer", 3.00, 1, function() 
+	DeadRingerStopSpeedBoost()
 end )
-self:SetNWBool("CanAttack", false)
-self:SetNWBool("Status", 3)
+self:SetNWBool("DeadRingerCanAttack", false)
+self:SetNWBool("DeadRingerStatus", 3)
 self:SetNoDraw(true)
 -- ClientSide Player Ragdoll
 if GetConVar( "sv_dead_ringer_corpse_serverside" ):GetInt() < 1 then
@@ -639,7 +731,7 @@ end
 end
 
 function LeftTheVehicle( ply, vehicle )
-	if ply:GetNWBool("CanAttack") == false and ply:GetNWBool("Dead") == true and ply:GetNWBool("Status") == 3 then
+	if ply:GetNWBool("DeadRingerCanAttack") == false and ply:GetNWBool("DeadRingerDead") == true and ply:GetNWBool("DeadRingerStatus") == 3 then
 		self:SetNoDraw(true)
 	end
 end
@@ -676,6 +768,7 @@ local ent = ents.Create("prop_ragdoll")
 	ent:Spawn()	
 	ent:SetCollisionGroup(COLLISION_GROUP_WEAPON or COLLISION_GROUP_NONE)
 	ent.Corpse = true
+	ent.sid = self:SteamID()
 	
  local vel = self:GetVelocity()
  
@@ -698,10 +791,10 @@ function DeadRingerRagdollForce(ent,dmginfo)
 --print("Hook called!")
 	if ent:IsPlayer() then
 		--print("Player detected!")
-		if ent:IsValid() and ent:GetNWBool("Dead") == true and ent:GetNWBool("Status") == 3 then
+		if ent:IsValid() and ent:GetNWBool("DeadRingerDead") == true and ent:GetNWBool("DeadRingerStatus") == 3 then
 			--print("Invisibility validated!")
 			-- Vaporize Check
-			if ent:GetNWBool("Vaporize", true) and dmginfo:IsDamageType(DMG_DISSOLVE) then
+			if ent:GetNWBool("DeadRingerVaporize", true) and dmginfo:IsDamageType(DMG_DISSOLVE) then
 				--print("Damage found as dissolve!")
 				local dissolve = ents.Create("env_entity_dissolver")
 				dissolve:SetKeyValue("magnitude",0)
@@ -713,29 +806,63 @@ function DeadRingerRagdollForce(ent,dmginfo)
 				if GetConVar( "sv_dead_ringer_corpse_serverside" ):GetInt() > 0 then
 					for _, entr in pairs(ents.GetAll()) do
 						if entr:GetClass() == "prop_ragdoll" and entr:GetOwner() == ent and entr.Corpse then
-							entr:SetKeyValue("targetname","dead_ringer_ragdoll_to_dissolve")
-							for j = 1, entr:GetPhysicsObjectCount() do
+							entr:SetName("dead_ringer_ragdoll_to_dissolve")
+							--[[for j = 1, entr:GetPhysicsObjectCount() do
 								local bone = entr:GetPhysicsObjectNum(j)
 								if bone and bone.IsValid and bone:IsValid() then
 									bone:EnableGravity( false )
 									entr:GetPhysicsObject():EnableGravity( false )
 									bone:SetVelocity( ent:GetVelocity()/5 )
 								end
-							end
+							end--]]
 							--print("Serverside ragdoll dissolve called!")
 						end
 					end -- serverside
 				else if GetConVar( "sv_dead_ringer_corpse_serverside" ):GetInt() < 1 then
 					local client_ragdoll = ent:GetRagdollEntity()
 					if client_ragdoll:IsValid() then
-						client_ragdoll:SetKeyValue("targetname","dead_ringer_ragdoll_to_dissolve")
+						client_ragdoll:SetName("dead_ringer_ragdoll_to_dissolve")
 						--print("Clientside ragdoll dissolve called!")
 					end -- clientside
 				end
 				end
 				dissolve:Fire("Dissolve","",0)
 				dissolve:Fire("kill","",0.1)
+				for _, obj in pairs(ents.GetAll()) do
+					if obj:GetName() == "dead_ringer_ragdoll_to_dissolve" then
+						obj:SetName("dead_ringer_ragdoll_to_dissolve")
+					end
+				end
 			end
+			-- Ignition Check
+			--[[if dmginfo:IsDamageType(DMG_BURN) then -- Almost functional, except the part this applies to every entityflame
+				function NoDamage()
+					dmginfo:SetDamage( 0 )
+					dmginfo:SetDamageType( DMG_GENERIC )
+					dmginfo:SetDamageForce( Vector( 0, 0, 0 ) )
+				end
+				if GetConVar( "sv_dead_ringer_corpse_serverside" ):GetInt() > 0 then
+					for _, entr in pairs(ents.GetAll()) do
+						if entr:GetClass() == "prop_ragdoll" and entr:GetOwner() == ent and entr.Corpse then
+							for _, flame in pairs(ents.GetAll()) do
+								if flame:GetClass() == "entityflame" and flame:GetParent() == entr then
+									NoDamage()
+								end
+							end
+						end
+					end
+					else if GetConVar( "sv_dead_ringer_corpse_serverside" ):GetInt() < 1 then
+						local client_ragdoll = ent:GetRagdollEntity()
+						if client_ragdoll:IsValid() then
+							for _, flame in pairs(ents.GetAll()) do
+								if flame:GetClass() == "entityflame" and flame:GetParent() == client_ragdoll then
+									NoDamage()
+								end
+							end
+						end
+					end
+				end
+			end--]]
 		end
 	end
 end
@@ -745,7 +872,7 @@ end
 end
 
 -- here goes the uncloak function
-function meta:uncloak()
+function meta:DRuncloak()
 	
 	if self:Alive() then
 		local corpse_time = GetConVar( "sv_dead_ringer_corpse_time" ):GetInt()
@@ -753,7 +880,7 @@ function meta:uncloak()
 			corpse_time = 50
 		end
 		if corpse_time > -1 then
-		timer.Create( "RagdollTimer1", corpse_time, 1, function() RagRemove() end ) -- (original time when timer-cvar wasn't added was 15)
+		timer.Create( "DeadRingerRagdollTimer1", corpse_time, 1, function() DeadRingerRagRemove() end ) -- (original time when timer-cvar wasn't added was 15)
 		end
 	end
 	
@@ -768,18 +895,20 @@ function meta:uncloak()
 	end--]]
 	self:SetNoTarget( false )
 	
-	self:SetNWBool("Vaporize", false)
-	self:SetNWBool(	"Dead",			false)
-	if ( timer.Exists( "StopSpeedBoostTimer" ) ) then
-	timer.Remove("StopSpeedBoostTimer")
-	StopSpeedBoost()
+	self:SetNWBool("DeadRingerVaporize", false)
+	self:SetNWBool(	"DeadRingerDead",			false)
+	if ( timer.Exists( "DeadRingerStopSpeedBoostTimer" ) ) then
+	timer.Remove("DeadRingerStopSpeedBoostTimer")
+	DeadRingerStopSpeedBoost()
 	end
-	timer.Remove("GiveSpeedBoostTimer")
-	timer.Remove("VaporizeDisableTimer")
-	self:SetNWBool(	"CanAttack",			true)
-	self:SetNWBool(	"Status",			4)
+	timer.Remove("DeadRingerGiveSpeedBoostTimer")
+	timer.Remove("DeadRingerVaporizeDisableTimer")
+	timer.Remove("DeadRingerCloakFadeinTimer")
+	self:SetNWBool(	"DeadRingerCanAttack",			true)
+	self:SetNWBool(	"DeadRingerStatus",			4)
 	self:GetViewModel():SetMaterial("")
 	self:SetMaterial("")
+	self:RemoveAllDecals()
 	self:SetColor(Color(255,255,255,255))
 	self:SetNoDraw(false)
 	self:DrawShadow(true)
@@ -792,7 +921,7 @@ function meta:uncloak()
 	else
 	self:DrawWorldModel(false)
 	end
-
+	
 	self:SetMaterial("")
 
 	self:EmitSound(Sound( "player/spy_uncloak.wav"), 75, 100, 0.5 ) -- (originally spy_uncloak_feigndeath)
