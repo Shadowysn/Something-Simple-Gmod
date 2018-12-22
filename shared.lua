@@ -269,6 +269,7 @@ end
 function SWEP:Think()
 end
 
+if SERVER then
 function SWEP:Holster()
 	local worldmodel = ents.FindInSphere(self.Owner:GetPos(),0.6)
 	for k, v in pairs(worldmodel) do 
@@ -277,6 +278,7 @@ v:Remove()
 end
 end
 return true
+end
 end
 
 -----------------------------------
