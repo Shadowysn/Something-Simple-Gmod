@@ -11,7 +11,7 @@ Then, click on the 'Browse Local Files' button, and a File Explorer window shoul
 
 -
 
-* Important: Make sure to disable the other Fedhoria addon from the workshop before starting up a map.
+Important: Make sure to disable the other Fedhoria addon from the workshop before starting up a map.
 
 Access the Steam Files, go to steamapps/common/GarrysMod/garrysmod, and put the files into the folder. 
 
