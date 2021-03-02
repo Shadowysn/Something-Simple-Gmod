@@ -37,6 +37,11 @@ function fedhoria.StartModule(ent, name, ...)
 	return contr
 end
 
+--preload modules
+for _, file_name in pairs(file.Find("fedhoria/modules/*.lua", "LUA")) do
+	fedhoria.GetModule(file_name:sub(1, -5))
+end
+
 local ENTITY = FindMetaTable("Entity")
 
 --TODO: make this actually take mass into account

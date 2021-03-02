@@ -31,6 +31,7 @@ local math_min = math.min
 local constant = 10000
 
 local function CreateSpring(phys1, phys2)
+	if (!IsValid(phys1) or !IsValid(phys2)) then return NULL end
 	local str_axis = tostring(phys2:LocalToWorld(phys2:GetAABBCenter()))
 
 	local const = ents.Create("phys_spring")
@@ -288,8 +289,13 @@ function MODULE:PhysicsSimulate(phys, dt)
 		return false
 	end
 
+	--helps reduce excessive twitching
+	if (phys:GetStress() > 100) then
+		return false
+	end
+
 	if (phys_bone == 0) then
-		local phys_torso = target:GetPhysicsObjectNum(1)	
+		local phys_torso = target:GetPhysicsObjectNum(1)
 		--calculate animation settings here so its only done once per frame
 		local pos = phys:GetPos()
 		local ang = phys:GetAngles()		
@@ -324,7 +330,7 @@ function MODULE:PhysicsSimulate(phys, dt)
 			return false
 		elseif (self.Springs) then
 			for _, spring in pairs(self.Springs) do
-				spring:Remove()
+				SafeRemoveEntity(spring)
 			end
 			self.Springs = nil
 		end
@@ -384,14 +390,37 @@ function MODULE:PhysicsSimulate(phys, dt)
 
 		if tr.Hit then
 			if (x < 0) then
-				pos = phys_torso:GetPos()
+				ang = phys:GetAngles()
+				local a = math.max(0, -ang:Right().z)
+
+				if (a < 0.2) then
+					self:Remove()
+					return false
+				end
+
+				pos = phys_torso:GetPos()	
+
+				local d = (pos - tr.HitPos):Length2D()
+
+				local div = self:GetSequenceMoveDist(self:GetSequence()) * self:SequenceDuration()
+
+				local m = math_max(0, 1 - (d / div))
+		
+				vel = phys:GetVelocity()
+				vel.x = 0
+				vel.y = 0
+				
+				m = m * a
+
+				vel.z = vel.z * m
+
+				phys:ApplyForceCenter(-vel * phys:GetMass() * f)
+
 				vel = phys_torso:GetVelocity()
 				vel.x = 0
 				vel.y = 0
 				
-				local d = (pos - tr.HitPos):Length2D()
-
-				vel.z = vel.z * math_max(0, 1 - (d / 12))
+				vel.z = vel.z * m
 
 				phys_torso:ApplyForceCenter(-vel * phys_torso:GetMass() * f)
 				return false
