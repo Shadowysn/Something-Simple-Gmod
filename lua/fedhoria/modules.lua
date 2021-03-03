@@ -63,7 +63,7 @@ end
 
 local PCOLLIDE_CACHE = {}
 
-local vec_max = Vector(4, 4, 4)
+local vec_max = Vector(1, 1, 1) * 4
 local vec_min = -vec_max
 
 function ENTITY:GetClosestPhysBone(pos)

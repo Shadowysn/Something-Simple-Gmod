@@ -10,10 +10,22 @@ local last_dmgpos = {}
 
 hook.Add("CreateEntityRagdoll", "Fedhoria", function(ent, ragdoll)
 	if (!enabled:GetBool() or !npcs:GetBool()) then return end
+	local dmgpos = last_dmgpos[ent]
+
+	local phys_bone, lpos
+
+	if dmgpos then
+		phys_bone = ragdoll:GetClosestPhysBone(dmgpos)
+		if phys_bone then
+			local phys = ragdoll:GetPhysicsObjectNum(phys_bone)
+			lpos = phys:WorldToLocal(dmgpos)
+		end
+	end
+
 	timer.Simple(0.1, function()
-		if (!IsValid(ent) or !IsValid(ragdoll)) then return end
-		local dmgpos = last_dmgpos[ent]
-		fedhoria.StartModule(ragdoll, "stumble_legs", dmgpos)
+		if !IsValid(ragdoll) then return end	
+		
+		fedhoria.StartModule(ragdoll, "stumble_legs", phys_bone, lpos)
 		last_dmgpos[ent] = nil		
 	end)
 end)

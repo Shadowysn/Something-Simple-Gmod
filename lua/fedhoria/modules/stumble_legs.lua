@@ -58,7 +58,7 @@ local allowed_touch =
 
 local hand_offset = Vector(2, 0, 0)
 
-function MODULE:Init(dmgpos)
+function MODULE:Init(phys_bone, lpos)
 	self.seq_walk = self:LookupSequence("walk_all")	
 	self.seq_walk_speed = self:GetSequenceMoveDist(self.seq_walk) * self:SequenceDuration(self.seq_walk)
 
@@ -135,9 +135,11 @@ function MODULE:Init(dmgpos)
 
 	local vel = target:GetVelocity():Length2D()
 
-	if dmgpos then
+	if phys_bone then
+		self.Springs = {}
 		--Grab wound
-		local phys_bone = target:GetClosestPhysBone(dmgpos)
+		local phys = target:GetPhysicsObjectNum(phys_bone)
+		local dmgpos = phys:LocalToWorld(lpos)
 		if (phys_bone and phys_bone != self.phys_bone_lhand and phys_bone != self.phys_bone_rhand) then
 			local phys = target:GetPhysicsObjectNum(phys_bone)
 			local phys_lhand = target:GetPhysicsObjectNum(self.phys_bone_lhand)
@@ -158,6 +160,8 @@ function MODULE:Init(dmgpos)
 				const:Fire("SetSpringLength", 0, 0)
 
 				SafeRemoveEntityDelayed(const, grab_time:GetFloat())
+
+				table.insert(self.Springs, const)
 			end
 
 			if (math.random() < grab_chance:GetFloat()) then
@@ -173,11 +177,13 @@ function MODULE:Init(dmgpos)
 				const:Fire("SetSpringLength", 0, 0)
 
 				SafeRemoveEntityDelayed(const, grab_time:GetFloat())
+
+				table.insert(self.Springs, const)
 			end
 		end
 	end
 
-	if (!target.GS2IsDismembered and vel < self.seq_walk_speed) then
+	--[[if (!target.GS2IsDismembered and vel < self.seq_walk_speed) then
 		--self:Remove()
 		self.Springs = {}
 		if (self.phys_bone_lthigh and self.phys_bone_lcalf) then
@@ -214,7 +220,7 @@ function MODULE:Init(dmgpos)
 
 			--CreateSpring(phys_pelvis, phys_rthigh)
 		end
-	end
+	end]]
 end
 
 local function DoFallingAnim(ent)
@@ -235,11 +241,11 @@ function MODULE:OnRemove()
 		end
 	end
 
-	if self.Springs then
+	--[[if self.Springs then
 		for _, spring in pairs(self.Springs) do
 			SafeRemoveEntityDelayed(spring, 1)
 		end
-	end
+	end]]
 
 	DoFallingAnim(target)
 end
@@ -250,7 +256,7 @@ end
 
 function MODULE:PhysicsCollide(ent, data)
 	--if (data.HitEntity == ent) then return end
-	if (data.HitEntity != game.GetWorld() or self.Springs) then return end
+	if (data.HitEntity != game.GetWorld()) then return end
 
 	local phys = data.PhysObject
 	local phys_bone = phys:GetID()
@@ -274,6 +280,12 @@ function MODULE:PhysicsSimulate(phys, dt)
 	local phys_bone = phys:GetID()
 
 	local target = self:GetTarget()
+
+	if (self.Springs and target:GetNWInt("GS2DisMask", 0) != 0) then
+		for _, spring in pairs(self.Springs) do
+			SafeRemoveEntity(spring)
+		end
+	end
 
 	local st = stumble_time:GetFloat()
 
@@ -307,7 +319,10 @@ function MODULE:PhysicsSimulate(phys, dt)
 		local up = ang:Up()
 
 		--try keeping  balance a little bit better
-		tilt_ang.y = math_Clamp(90 + 180 * math_atan2(right.z, up.z) / math_pi, -50, 20)
+		tilt_ang.y = math_Clamp(90 + 180 * math_atan2(right.z, up.z) / math_pi, -50, 20) * f
+
+		--too much balance?
+		tilt_ang.p = -ang.p * f
 
 		self:ManipulateBoneAngles(self.bone_lthigh, tilt_ang)
 		self:ManipulateBoneAngles(self.bone_rthigh, tilt_ang)
@@ -320,7 +335,7 @@ function MODULE:PhysicsSimulate(phys, dt)
 			self:ResetSequence(self.seq_sprint)
 		elseif (speed > self.seq_run_speed) then
 			self:ResetSequence(self.seq_run)
-		elseif (speed > self.seq_walk_speed) then
+		elseif (speed > self.seq_walk_speed) then		
 			self:ResetSequence(self.seq_walk)
 		else
 			slow = true
@@ -328,11 +343,11 @@ function MODULE:PhysicsSimulate(phys, dt)
 
 		if slow then
 			return false
-		elseif (self.Springs) then
+		--[[elseif (self.Springs) then
 			for _, spring in pairs(self.Springs) do
 				SafeRemoveEntity(spring)
 			end
-			self.Springs = nil
+			self.Springs = nil]]
 		end
 
 		--self:ResetSequence(self.seq_sprint)
@@ -388,15 +403,15 @@ function MODULE:PhysicsSimulate(phys, dt)
 
 		util.TraceLine(trace)
 
-		if tr.Hit then
-			if (x < 0) then
+		if tr.Hit then			
+			if (x < 0) then	
 				ang = phys:GetAngles()
 				local a = math.max(0, -ang:Right().z)
 
 				if (a < 0.2) then
 					self:Remove()
 					return false
-				end
+				end		
 
 				pos = phys_torso:GetPos()	
 
@@ -450,20 +465,58 @@ function MODULE:PhysicsSimulate(phys, dt)
 					force = math_min(force, 40)
 					phys:ApplyForceCenter(Vector(0, 0, force) * phys:GetMass() * f)					
 				end
-
-				return false
 			end
 		else			
 			self:Remove()				
 			return false		
 		end
 
+		if (self.phys_bone_lhand) then
+			local phys_lhand = target:GetPhysicsObjectNum(self.phys_bone_lhand)
+
+			pos = phys_lhand:GetPos()
+
+			local pos2 = target:GetBonePosition(target:LookupBone("ValveBiped.Bip01_L_Upperarm"))
+
+			local offset = pos2 - pos
+
+			offset:Add(phys:GetVelocity() * dt)
+
+			offset.z = 0
+
+			offset = offset:GetNormal() * offset:Length()^2
+
+			offset:Sub(phys_lhand:GetVelocity())
+
+			--phys_lhand:ApplyForceCenter(offset * phys_lhand:GetMass() * f)
+		end
+
+		if (self.phys_bone_rhand) then
+			local phys_rhand = target:GetPhysicsObjectNum(self.phys_bone_rhand)
+
+			pos = phys_rhand:GetPos()
+
+			local pos2 = target:GetBonePosition(target:LookupBone("ValveBiped.Bip01_R_Upperarm"))
+
+			local offset = pos2 - pos
+
+			offset:Add(phys:GetVelocity() * dt)
+
+			offset.z = 0
+
+			offset = offset:GetNormal() * offset:Length()^2
+
+			offset:Sub(phys_rhand:GetVelocity())
+
+			--phys_rhand:ApplyForceCenter(offset * phys_rhand:GetMass() * f)
+		end
+
 		return false
 	end
 
-	if self.Springs then		
+	--[[if self.Springs then		
 		return false
-	end
+	end]]
 
 	return true, f
 end
