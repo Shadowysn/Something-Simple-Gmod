@@ -22,7 +22,7 @@ hook.Add("CreateEntityRagdoll", "Fedhoria", function(ent, ragdoll)
 		end
 	end
 
-	timer.Simple(0.1, function()
+	timer.Simple(0, function()
 		if !IsValid(ragdoll) then return end	
 		
 		fedhoria.StartModule(ragdoll, "stumble_legs", phys_bone, lpos)
@@ -60,7 +60,7 @@ hook.Add("OnEntityCreated", "Fedhoria", function(ent)
 		end
 	end
 	if (!enabled:GetBool() or !players:GetBool() or !ent:IsRagdoll()) then return end
-	timer.Simple(0.1, function()
+	timer.Simple(0, function()
 		if !IsValid(ent) then return end
 		if CORPSE then
 			local ply = ent:GetDTEntity(CORPSE.dti.ENT_PLAYER)
@@ -167,7 +167,7 @@ end)
 
 hook.Add("PostPlayerDeath", "Fedhoria", function(ply)
 	if (!enabled:GetBool() or !players:GetBool()) then return end
-	timer.Simple(0.1, function()
+	timer.Simple(0, function()
 		if !IsValid(ply) then return end
 		local ragdoll = ply:GetRagdollEntity()
 		if (IsValid(ragdoll) and ragdoll:IsRagdoll()) then

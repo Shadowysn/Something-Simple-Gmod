@@ -257,6 +257,7 @@ end
 function MODULE:PhysicsCollide(ent, data)
 	--if (data.HitEntity == ent) then return end
 	if (data.HitEntity != game.GetWorld()) then return end
+	if (CurTime() - self.Created < 0.1) then return end
 
 	local phys = data.PhysObject
 	local phys_bone = phys:GetID()
@@ -306,8 +307,8 @@ function MODULE:PhysicsSimulate(phys, dt)
 		return false
 	end
 
-	if (phys_bone == 0) then
-		local phys_torso = target:GetPhysicsObjectNum(1)
+	if (phys_bone == (self.phys_bone_pelvis or 0)) then
+		local phys_torso = target:GetPhysicsObjectNum(self.phys_bone_torso or 1)
 		--calculate animation settings here so its only done once per frame
 		local pos = phys:GetPos()
 		local ang = phys:GetAngles()		
@@ -403,7 +404,7 @@ function MODULE:PhysicsSimulate(phys, dt)
 
 		util.TraceLine(trace)
 
-		if tr.Hit then			
+		if tr.Hit then		
 			if (x < 0) then	
 				ang = phys:GetAngles()
 				local a = math.max(0, -ang:Right().z)
@@ -466,7 +467,7 @@ function MODULE:PhysicsSimulate(phys, dt)
 					phys:ApplyForceCenter(Vector(0, 0, force) * phys:GetMass() * f)					
 				end
 			end
-		else			
+		else		
 			self:Remove()				
 			return false		
 		end
