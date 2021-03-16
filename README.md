@@ -1,4 +1,4 @@
-If you're the creator (Rama) and you're reading this, you can completely use/alter this code.
+If you're the creator (Rama) and you're reading this, feel free to completely use/alter this code.
 It's not mine, anyways.
 
 Installation:
