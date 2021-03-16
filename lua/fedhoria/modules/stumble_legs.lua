@@ -2,7 +2,7 @@ MODULE.Model = "models/barney.mdl"
 MODULE.BoneList = 
 {
 	"ValveBiped.Bip01_Pelvis",
-	--"ValveBiped.Bip01_Spine2",
+	"ValveBiped.Bip01_Spine2",
 	--"ValveBiped.Bip01_Head1",
 	--"ValveBiped.Bip01_R_Upperarm",
 	--"ValveBiped.Bip01_R_Forearm",
@@ -140,14 +140,13 @@ function MODULE:Init(phys_bone, lpos)
 		--Grab wound
 		local phys = target:GetPhysicsObjectNum(phys_bone)
 		local dmgpos = phys:LocalToWorld(lpos)
-		if (phys_bone and phys_bone != self.phys_bone_lhand and phys_bone != self.phys_bone_rhand) then
-			local phys = target:GetPhysicsObjectNum(phys_bone)
+		if (IsValid(phys) and phys_bone != self.phys_bone_lhand and phys_bone != self.phys_bone_rhand) then
 			local phys_lhand = target:GetPhysicsObjectNum(self.phys_bone_lhand)
 			local phys_rhand = target:GetPhysicsObjectNum(self.phys_bone_rhand)
 
 			local str_axis = tostring(dmgpos)
 
-			if (math.random() < grab_chance:GetFloat()) then
+			if (IsValid(phys_lhand) and math.random() < grab_chance:GetFloat()) then
 				local const = ents.Create("phys_spring")
 				const:SetPos(phys_lhand:LocalToWorld(hand_offset))
 				const:SetKeyValue("springaxis", str_axis)
@@ -164,7 +163,7 @@ function MODULE:Init(phys_bone, lpos)
 				table.insert(self.Springs, const)
 			end
 
-			if (math.random() < grab_chance:GetFloat()) then
+			if (IsValid(phys_rhand) and math.random() < grab_chance:GetFloat()) then
 				local const = ents.Create("phys_spring")
 				const:SetPos(phys_rhand:LocalToWorld(hand_offset))
 				const:SetKeyValue("springaxis", str_axis)
@@ -237,7 +236,9 @@ function MODULE:OnRemove()
 		if bone then
 			local phys_bone = target:TranslateBoneToPhysBone(bone)
 			local phys = target:GetPhysicsObjectNum(phys_bone)
-			phys:ClearGameFlag(FVPHYSICS_NO_SELF_COLLISIONS)
+			if IsValid(phys) then
+				phys:ClearGameFlag(FVPHYSICS_NO_SELF_COLLISIONS)
+			end
 		end
 	end
 
@@ -305,6 +306,26 @@ function MODULE:PhysicsSimulate(phys, dt)
 	--helps reduce excessive twitching
 	if (phys:GetStress() > 100) then
 		return false
+	end
+
+	if (phys_bone == self.phys_bone_torso) then
+		local phys_pelvis = target:GetPhysicsObjectNum(self.phys_bone_pelvis or 0)
+		local vel = phys:GetVelocity()
+		vel.z = 0
+		vel:Normalize()
+
+		local ang = phys_pelvis:GetAngles()
+		ang.p = 0
+		ang.r = 0
+
+		local x = ang:Right():Dot(vel)
+		local y = ang:Forward():Dot(vel)
+
+		local yaw = 180 * math_atan2(y, x) / math_pi
+
+		if (yaw < 90 and yaw > -90) then
+			return false
+		end
 	end
 
 	if (phys_bone == (self.phys_bone_pelvis or 0)) then
@@ -407,11 +428,11 @@ function MODULE:PhysicsSimulate(phys, dt)
 		if tr.Hit then		
 			if (x < 0) then	
 				ang = phys:GetAngles()
-				local a = math.max(0, -ang:Right().z)
+				local a = math.max(0, -ang:Right().z)^2
 
 				if (a < 0.2) then
-					self:Remove()
-					return false
+					--self:Remove()
+					--return false
 				end		
 
 				pos = phys_torso:GetPos()	
@@ -473,7 +494,7 @@ function MODULE:PhysicsSimulate(phys, dt)
 		end
 
 		if (self.phys_bone_lhand) then
-			local phys_lhand = target:GetPhysicsObjectNum(self.phys_bone_lhand)
+			--[[local phys_lhand = target:GetPhysicsObjectNum(self.phys_bone_lhand)
 
 			pos = phys_lhand:GetPos()
 
@@ -489,11 +510,11 @@ function MODULE:PhysicsSimulate(phys, dt)
 
 			offset:Sub(phys_lhand:GetVelocity())
 
-			--phys_lhand:ApplyForceCenter(offset * phys_lhand:GetMass() * f)
+			phys_lhand:ApplyForceCenter(offset * phys_lhand:GetMass() * f)]]
 		end
 
 		if (self.phys_bone_rhand) then
-			local phys_rhand = target:GetPhysicsObjectNum(self.phys_bone_rhand)
+			--[[local phys_rhand = target:GetPhysicsObjectNum(self.phys_bone_rhand)
 
 			pos = phys_rhand:GetPos()
 
@@ -509,7 +530,7 @@ function MODULE:PhysicsSimulate(phys, dt)
 
 			offset:Sub(phys_rhand:GetVelocity())
 
-			--phys_rhand:ApplyForceCenter(offset * phys_rhand:GetMass() * f)
+			phys_rhand:ApplyForceCenter(offset * phys_rhand:GetMass() * f)]]
 		end
 
 		return false

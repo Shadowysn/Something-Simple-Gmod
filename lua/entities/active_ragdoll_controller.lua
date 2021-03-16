@@ -117,7 +117,6 @@ function ENT:Initialize()
 		 		local phys_bone = target:TranslateBoneToPhysBone(bone)
 		 		local phys = target:GetPhysicsObjectNum(phys_bone)
 		 		if IsValid(phys) then
-			 		phys:SetMass(info.mass)
 			 		phys:SetInertia(info.inertia)
 			 	end
 			end
@@ -134,23 +133,25 @@ function ENT:Initialize()
 		if bone then
 			is_match = true				
 			local phys_bone = target:TranslateBoneToPhysBone(bone)
-			bone = target:TranslatePhysBoneToBone(phys_bone)
-
-			self.root_bone = self.root_bone or bone
-			self.root_phys_bone = self.root_phys_bone or phys_bone
-
 			local phys = target:GetPhysicsObjectNum(phys_bone)
-			self:AddToMotionController(phys)
-			self.bone_translate[bone] = self:LookupBone(bone_name)
+			if IsValid(phys) then
+				bone = target:TranslatePhysBoneToBone(phys_bone)
 
-			local bone_parent = target:GetBoneParent(bone)
-			bone_parent = target:TranslateBoneToPhysBone(bone_parent)
-			bone_parent = target:TranslatePhysBoneToBone(bone_parent)
-			local bone_name_parent = target:GetBoneName(bone_parent)
+				self.root_bone = self.root_bone or bone
+				self.root_phys_bone = self.root_phys_bone or phys_bone
 
-			self.bone_parent[bone] = bone_parent
+				self:AddToMotionController(phys)
+				self.bone_translate[bone] = self:LookupBone(bone_name)
 
-			self.bone_translate[bone_parent] = self:LookupBone(bone_name_parent)
+				local bone_parent = target:GetBoneParent(bone)
+				bone_parent = target:TranslateBoneToPhysBone(bone_parent)
+				bone_parent = target:TranslatePhysBoneToBone(bone_parent)
+				local bone_name_parent = target:GetBoneName(bone_parent)
+
+				self.bone_parent[bone] = bone_parent
+
+				self.bone_translate[bone_parent] = self:LookupBone(bone_name_parent)
+			end
 		end
 	end
 
@@ -272,11 +273,11 @@ function ENT:PhysicsSimulate(phys, dt)
 
 		local _, lang = WorldToLocal(vector_origin, bone_ang, vector_origin, bone_ang_parent)
 
-		_, bone_ang = LocalToWorld(vector_origin, lang, target:GetBonePosition(bone_parent))
+		local _, target_ang = LocalToWorld(vector_origin, lang, target:GetBonePosition(bone_parent))
 
 		--TODO: clamp to ragdoll joint limits to avoid spazz
 
-		local ang_vel = self:PhysAlignAngles(phys, bone_ang)
+		local ang_vel = self:PhysAlignAngles(phys, target_ang)
 
 		ang_vel:Mul(20 * factor)
 
@@ -292,5 +293,32 @@ function ENT:PhysicsSimulate(phys, dt)
 		end
 
 		phys:AddAngleVelocity(ang_vel)
+
+		--maybe this can work some day but that day is not today
+		--[[local phys_bone_parent = target:TranslateBoneToPhysBone(self_bone_parent)
+		local phys_parent = target:GetPhysicsObjectNum(phys_bone_parent)
+
+		local _, lang = WorldToLocal(vector_origin, bone_ang_parent, vector_origin, bone_ang)
+
+		local _, target_ang = LocalToWorld(vector_origin, lang, target:GetBonePosition(bone))
+
+		--TODO: clamp to ragdoll joint limits to avoid spazz
+
+		local ang_vel = self:PhysAlignAngles(phys_parent, target_ang)
+
+		ang_vel:Mul(20 * factor)
+
+		ang_vel:Sub(phys_parent:GetAngleVelocity())
+
+		if self.max_ang_vel then
+			local len_sqr = ang_vel:LengthSqr()
+
+			if (len_sqr > self.max_ang_vel_sqr) then
+				ang_vel:Normalize()
+				ang_vel:Mul(self.max_ang_vel)
+			end
+		end
+
+		phys_parent:AddAngleVelocity(ang_vel)]]
 	end
 end
