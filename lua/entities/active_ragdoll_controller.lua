@@ -118,6 +118,7 @@ function ENT:Initialize()
 		 		local phys = target:GetPhysicsObjectNum(phys_bone)
 		 		if IsValid(phys) then
 			 		phys:SetInertia(info.inertia)
+			 		phys:SetMass(info.mass)
 			 	end
 			end
 		end
